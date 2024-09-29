@@ -1,4 +1,5 @@
 ﻿using RabbitMQ.Client;
+using ServerSVH.Application.Interface;
 using System.Text;
 
 

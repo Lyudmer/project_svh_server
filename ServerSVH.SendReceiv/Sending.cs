@@ -19,7 +19,7 @@ namespace ServerSVH.SendReceiv
         async Task<int> SendMeesageToClient(int Pid)
         {
 
-            int stPkg = _pkgRepository.GetByStatus(Pid).Result;
+            int stPkg = _pkgRepository.GetById(Pid).Result.StatusId;
             try
             {
                 // собрать xml

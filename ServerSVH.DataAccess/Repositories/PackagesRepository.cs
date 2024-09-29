@@ -42,6 +42,17 @@ namespace ServerSVH.DataAccess.Repositories
             var pkgList = await query.ToListAsync();
             return _mapper.Map<List<Package>>(pkgList);
         }
+        public async Task<Package> GetPkgByGuid(Guid UserId, Guid UUID)
+        {
+            var pkgEntity = await _dbContext.Packages
+                .AsNoTracking()
+                .Include(p => p.Documents)
+                .FirstOrDefaultAsync(p => p.UUID == UUID && p.UserId == UserId)
+                ?? throw new Exception();
+
+            return _mapper.Map<Package>(pkgEntity);
+
+        }
         public async Task<Package> GetPkgWithDoc(int Pid)
         {
             var pkgEntity = await _dbContext.Packages
@@ -53,13 +64,7 @@ namespace ServerSVH.DataAccess.Repositories
             return _mapper.Map<Package>(pkgEntity);
 
         }
-        public async Task<int> GetByStatus(int Pid)
-        {
-            var pkgEntity = await _dbContext.Packages
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(p => p.Id == Pid);
-            return _mapper.Map<Package>(pkgEntity).StatusId;
-        }
+
         public async Task<List<Package>> GetByPage(int Page, int Page_Size)
         {
             var query = _dbContext.Packages
@@ -87,7 +92,5 @@ namespace ServerSVH.DataAccess.Repositories
         {
             return await _dbContext.Packages.MaxAsync(p => p.Id);
         }
-     
-        
     }
 }

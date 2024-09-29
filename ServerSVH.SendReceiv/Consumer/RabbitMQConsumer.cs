@@ -30,5 +30,10 @@ namespace ServerSVH.SendReceiv.Consumer
 
             return resLoadMessage;
         }
+
+        public string LoadMessage(string CodeCMN)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

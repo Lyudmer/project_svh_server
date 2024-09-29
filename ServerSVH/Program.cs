@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using MongoDB.Driver;
+using ServerSVH.DataAccess;
+using ServerSVH.DocRecordDataAccess;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;

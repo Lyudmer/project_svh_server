@@ -29,4 +29,9 @@
     <Folder Include="Controllers\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ServerSVH.DataAccess\ServerSVH.DataAccess.csproj" />
+    <ProjectReference Include="..\ServerSVH.DocRecordDataAccess\ServerSVH.DocRecordDataAccess.csproj" />
+  </ItemGroup>
+
 </Project>

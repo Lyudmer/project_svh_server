@@ -3,6 +3,7 @@ using ServerSVH.Core.Models;
 using ServerSVH.DocRecordCore.Abstraction;
 using ServerSVH.DocRecordCore.Models;
 using ServerSVH.SendReceiv.Consumer;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Xml.Linq;
 
@@ -28,12 +29,27 @@ namespace ServerSVH.SendReceiv
                 // создать пакет и запустить workflow
                 if (resMess != null)
                 {
+                    ResLoadPackage resPkg = await PaskageFromMessage(resMess);
 
+                    switch(resPkg.Status)
+                    {
+                        case -1:
+                            //отправить ошибку слиенту
 
-                    stPkg = int.Parse(resMess);
-                    var Pid = int.Parse(resMess);
-                    int olsstPkg = _pkgRepository.GetByStatus(Pid).Result;
-                    await _pkgRepository.UpdateStatus(Pid, stPkg);
+                            break;
+                        case 0:
+                            await _pkgRepository.UpdateStatus(resPkg.Pid, resPkg.Status);
+                            break;
+                        case 1:
+                            break;
+                            //запуск workflow
+                        default:
+                            // ждем смены статуса
+                            break;
+                    }
+
+                    //int olsstPkg = _pkgRepository.GetByStatus(resPkg.Pid).Result;
+                    //await _pkgRepository.UpdateStatus(Pid, stPkg);
 
 
                 }
@@ -48,49 +64,14 @@ namespace ServerSVH.SendReceiv
             }
             return stPkg;
         }
-        private static Guid GetValuePropsGuid(IEnumerable<XElement>? propsPkg, string nameAtt)
+   
+        private async Task<ResLoadPackage> PaskageFromMessage(string Mess)
         {
-
-            var valPkg = propsPkg?.Elements("name").Where(s => s.Attribute(nameAtt)?.Value is not null).ToString();
-            if (valPkg is not null)
-                if (nameAtt == "UserId" || nameAtt == "uuid")
-                {
-                    if (Guid.TryParse(valPkg, out var res))
-                        return res;
-
-                }
-            return Guid.NewGuid();
-
-        }
-        private static int GetValuePropsInt(IEnumerable<XElement>? propsPkg, string nameAtt)
-        {
-
-            var valPkg = propsPkg?.Elements("name").Where(s => s.Attribute(nameAtt)?.Value is not null).ToString();
-            if (valPkg is not null && int.TryParse(valPkg, out var res))
-                return res;
-
-
-            return 0;
-
-        }
-        private static DateTime GetValuePropsDT(IEnumerable<XElement>? propsPkg, string nameAtt)
-        {
-
-            var valPkg = propsPkg?.Elements("name").Where(s => s.Attribute(nameAtt)?.Value is not null).ToString();
-            if (valPkg is not null && DateTime.TryParse(valPkg, out var res))
-                return res;
-
-
-            return DateTime.Now;
-
-        }
-        private async Task<int> CreatePaskageFromMessage(string Mess)
-        {
-            int stPkg = -1;
+            ResLoadPackage resPkg = new(-1, -1);
             try
             {
                 XDocument xMess = XDocument.Load(Mess);
-                if (xMess is null) return stPkg;
+               
                 var xPkg = xMess.Element("Package")?
                            .Elements("*").Where(p => p.Attribute("ctmtd")?.Value == "CfgName");
                 if (xPkg is not null)
@@ -102,40 +83,61 @@ namespace ServerSVH.SendReceiv
                     {
                         if (pid_1 <= Pid) pid_1 = Pid;
                     }
-
+                    
                     var propsPkg = xMess.Elements("Package")?.Elements("package-properties");
-                    var userPkg = GetValuePropsGuid(propsPkg, "UserId");
-                    stPkg = GetValuePropsInt(propsPkg, "Status");
-                    var cdPkg = GetValuePropsDT(propsPkg, "CreateDate");
-                    Guid uuidPkg = GetValuePropsGuid(propsPkg, "uuid");
+                    
 
-                    var Pkg = Package.Create(pid_1, userPkg, stPkg, uuidPkg, cdPkg, DateTime.Now);
-                    Pkg = await _pkgRepository.Add(Pkg);
-                    Pid = Pkg.Pid;
+                    var userPkg = ConverterValue.ConvertTo<Guid>(propsPkg?.Elements("name").Where(s => s.Attribute("UserId")?.Value is not null).ToString());
+                    var stPkg = ConverterValue.ConvertTo<int>(propsPkg?.Elements("name").Where(s => s.Attribute("Status")?.Value is not null).ToString());
+                    var cdPkg = ConverterValue.ConvertTo<DateTime>(propsPkg?.Elements("name").Where(s => s.Attribute("CreateDate")?.Value is not null).ToString());
+                    var uuidPkg = ConverterValue.ConvertTo<Guid>(propsPkg?.Elements("name").Where(s => s.Attribute("uuid")?.Value is not null).ToString());
+                   
                     var xDocs = from xDoc in xPkg?.AsParallel().Elements()
                                 select new
                                 {
-                                    tdoc = xDoc.Name?.LocalName,
-                                    num = xDoc.Elements().Elements().FirstOrDefault(n => n.Name == "RegNum")?.Value,
-                                    dat = xDoc.Elements().Elements().FirstOrDefault(n => n.Name == "RegDate")?.Value,
+                                    doctype = xDoc.Attribute("doctype")?.Value,
+                                    docid = ConverterValue.ConvertTo<Guid>(xDoc.Attribute("docid")?.Value),
+                                    doccreate = ConverterValue.ConvertTo<DateTime>(xDoc.Attribute("createdate")?.Value),
                                     doctext = xDoc.ToString()
 
                                 };
-                    foreach (var doc in xDocs)
+                    // проверить наличие пакета на сервере
+                    var getPkg = await _pkgRepository.GetPkgByGuid(userPkg, uuidPkg);
+                    if (getPkg != null)
                     {
-                        var doc_1 = await _docRepository.GetLastDocId() + 1;
-                        var DocId = Guid.NewGuid();
-                        var Doc = Document.Create(doc_1, DocId,
-                                  doc.doctext.Length, GetHashMd5(doc.doctext), GetSha256(doc.doctext),
-                                  Pid, DateTime.Now, DateTime.Now);
-
-
-                        Doc = await _docRepository.Add(Doc);
-                        if (Doc is not null)
+                        //внести изменения в записи
+                        await _pkgRepository.UpdateStatus(getPkg.Pid, stPkg);
+                        var Docs =await _docRepository.GetByFilter(getPkg.Pid);
+                        foreach (var doc in xDocs)
                         {
-                            DocRecord dRecord = DocRecord.Create(Guid.NewGuid(), Doc.DocId, doc.doctext, DateTime.Now, DateTime.Now);
-                            var dRecordId = await _docRecordRepository.Add(dRecord);
+                            var Doc = await _docRepository.GetByGuidId(doc.docid);
+                            if (Doc != null) { }
+
                         }
+                        resPkg = new(getPkg.Pid, stPkg);
+                    }
+                    else
+                    {
+                        // создать новый
+                        var Pkg = Package.Create(pid_1, userPkg, stPkg, uuidPkg, cdPkg, DateTime.Now);
+                        Pkg = await _pkgRepository.Add(Pkg);
+                        Pid = Pkg.Pid;
+                        foreach (var doc in xDocs)
+                        {
+                            var doc_1 = await _docRepository.GetLastDocId() + 1;
+                            var Doc = Document.Create(doc_1, doc.docid, doc.doctype, doc.doctext.Length,
+                                                      DopFunction.GetHashMd5(doc.doctext), DopFunction.GetSha256(doc.doctext),
+                                                        Pid, doc.doccreate, DateTime.Now);
+
+
+                            Doc = await _docRepository.Add(Doc);
+                            if (Doc is not null)
+                            {
+                                DocRecord dRecord = DocRecord.Create(Guid.NewGuid(), Doc.DocId, doc.doctext, doc.doccreate, DateTime.Now);
+                                var dRecordId = await _docRecordRepository.Add(dRecord);
+                            }
+                        }
+                        resPkg = new(Pid, stPkg);
                     }
                 }
             }
@@ -145,7 +147,9 @@ namespace ServerSVH.SendReceiv
                 //
 
             }
-            return stPkg;
+            return resPkg;
         }
+
+        
     }
 }

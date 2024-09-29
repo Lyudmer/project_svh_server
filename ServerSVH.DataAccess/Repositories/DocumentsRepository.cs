@@ -42,6 +42,15 @@ namespace ServerSVH.DataAccess.Repositories
             return _mapper.Map<Document>(docEntity);
 
         }
+        public async Task<Document> GetByGuidId(Guid did)
+        {
+            var docEntity = await _dbContext.Document
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.DocId == did) ?? throw new Exception();
+
+            return _mapper.Map<Document>(docEntity);
+
+        }
         public async Task<List<Document>> GetByFilter(int pid)
         {
             var query = _dbContext.Document.AsNoTracking();

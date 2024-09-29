@@ -11,6 +11,7 @@ namespace ServerSVH.Core.Abstraction.Repositories
         Task Delete(int Id);
         Task<List<Document>> GetByFilter(int pid);
         Task<Document> GetById(int id);
+        Task<Document> GetByGuidId(Guid did);
         Task<List<Document>> GetByPage(int page, int page_size);
         Task<int> GetLastDocId();
         Task Update(int Id);
