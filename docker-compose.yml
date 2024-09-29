@@ -1,0 +1,53 @@
+services:
+  serversvh:
+    image: ${DOCKER_REGISTRY-}serversvh
+    build:
+      context: .
+      dockerfile: ServerSVH/Dockerfile
+  rabbit:
+    container_name: serversvh-rabbitmq
+    image: rabbitmq:4.0.2-management-alpine
+    restart: always
+    hostname: localhost    
+    environment:
+      RABBITMQ_DEFAULT_USER: serversvh
+      RABBITMQ_DEFAULT_PASS: serversvh
+    volumes:
+      - ./rabbitmq/data/:/var/lib/rabbitmq/
+      - ./rabbitmq/log/:/var/log/rabbitmq/
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_DB: "serversvhdb"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "studadmin"
+    ports:
+       - "5432:5432"
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    
+  mongo:
+    image: mongo:latest
+    container_name: servermongo
+    restart: always
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: studadmin
+        MONGO_INITDB_ROOT_PASSWORD: studadmin
+    ports:
+       -  27017:27017
+ 
+volumes:
+  postgres-db:
+    driver: local
+  mongodb-data:
+    driver: local
+  rabbitmq_data:  
+  networks:
+  default:
+    name: serversvhLocalNetwork 
+    external: true  
