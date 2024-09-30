@@ -16,17 +16,13 @@ namespace ServerSVH.SendReceiv
         DateTime DocCreate,
         string DocText
     );
-    record class PkgFromXml
-    (
-        int Pid,
-        int Status,
-        Guid UserId,
-        Guid UUID
-    );
+   
     record class ResLoadPackage
     (
+        Guid UUID,
         int Pid,
-        int Status
+        int Status,
+        string Message
     );
     public class DopFunction
     {
@@ -57,5 +53,6 @@ namespace ServerSVH.SendReceiv
             }
             return sb.ToString();
         }
+
     }
 }

@@ -14,6 +14,6 @@ namespace ServerSVH.Core.Abstraction.Repositories
         Task<Document> GetByGuidId(Guid did);
         Task<List<Document>> GetByPage(int page, int page_size);
         Task<int> GetLastDocId();
-        Task Update(int Id);
+        Task Update(Guid DocId, Document Doc);
     }
 }

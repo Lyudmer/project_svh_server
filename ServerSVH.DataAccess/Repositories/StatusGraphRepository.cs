@@ -1,14 +1,15 @@
 ﻿using ServerSVH.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 using ServerSVH.Core.Abstraction.Repositories;
+using AutoMapper;
 
 
 namespace ServerSVH.DataAccess.Repositories
 {
-    public class StatusGraphRepository(ServerSVHDbContext dbContext) : IStatusGraphRepository
+    public class StatusGraphRepository(ServerSVHDbContext dbContext, IMapper mapper) : IStatusGraphRepository
     {
         private readonly ServerSVHDbContext _dbContext = dbContext;
-
+        private readonly IMapper _mapper = mapper;
         public async Task Add(int oldst, int newst, string maskbit)
         {
             var statusGraphEntity = new StatusGraphEntity
@@ -27,6 +28,14 @@ namespace ServerSVH.DataAccess.Repositories
                 .Where(u => u.OldSt == oldst)
                 .Where(u => u.NewSt == newst)
                 .ExecuteDeleteAsync();
+        }
+        public async Task<int> GetNewSt(int OldSt)
+        {
+            var newStatus = await _dbContext.StatusGraph
+                                .AsNoTracking()
+                                .FirstOrDefaultAsync(u => u.OldSt == OldSt) ?? throw new Exception();
+           
+            return _mapper.Map<int>(newStatus);
         }
     }
 }
