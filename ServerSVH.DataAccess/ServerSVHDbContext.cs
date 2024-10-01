@@ -34,7 +34,7 @@ namespace ServerSVH.DataAccess
         public ServerSVHDbContext CreateDbContext(string[] args)
         {
             var optionsBuilder = new DbContextOptionsBuilder<ServerSVHDbContext>();
-            optionsBuilder.UseNpgsql("Host=localhost;User ID=postgres;Password=studadmin;Port=5132;Database=srsvhdb;");
+            optionsBuilder.UseNpgsql("Host=localhost;User ID=postgres;Password=studadmin;Port=5432;Database=srsvhdb;");
             var b = optionsBuilder.Options;
 
             return new ServerSVHDbContext(b);

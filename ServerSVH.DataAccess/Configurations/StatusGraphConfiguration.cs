@@ -12,7 +12,7 @@ namespace ServerSVH.DataAccess.Configurations
         {
             builder.ToTable("pkg_status_graph");
     //ключи
-            builder.HasKey(st => st.OldSt);
+            builder.HasKey(st => new { st.OldSt, st.NewSt });
             
     //свойства полей
             builder.Property(st => st.OldSt)
