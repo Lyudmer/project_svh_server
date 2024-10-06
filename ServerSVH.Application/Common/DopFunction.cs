@@ -1,32 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace ServerSVH.SendReceiv
+namespace ServerSVH.Application.Common
 {
-    record class DocFromXml
+    public record class DocFromXml
     (
         string TypeDoc,
         Guid DocId,
         DateTime DocCreate,
         string DocText
     );
-   
-    record class ResLoadPackage
-    (
-        Guid UUID,
-        int Pid,
-        int Status,
-        string Message
-    );
+    public class ResLoadPackage
+    {
+        public Guid UUID { get; set; }= Guid.Empty;
+        public int Pid { get; set; } = -1;    
+        public int Status { get; set; }= -1;
+        public string Message { get; set; }=string.Empty;
+    };
+
     public class DopFunction
     {
-     
        
         public static string GetHashMd5(string text)
         {

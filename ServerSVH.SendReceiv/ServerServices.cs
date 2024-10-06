@@ -6,6 +6,7 @@ using ServerSVH.DocRecordCore.Models;
 using ServerSVH.SendReceiv.Consumer;
 using ServerSVH.SendReceiv.Producer;
 using System.Xml.Linq;
+using ServerSVH.Application.Common;
 
 namespace ServerSVH.SendReceiv
 {
@@ -49,8 +50,10 @@ namespace ServerSVH.SendReceiv
 
                             break;
                         case 3:
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
                             break;
                         //запуск workflow
+
                         default:
                             // ждем смены статуса
                             break;
@@ -65,7 +68,7 @@ namespace ServerSVH.SendReceiv
             }
             return stPkg;
         }
-        private static XDocument CreateResultXml(ResLoadPackage resPkg)
+        public XDocument CreateResultXml(ResLoadPackage resPkg)
         {
             var xRes = new XDocument();
 
@@ -79,7 +82,7 @@ namespace ServerSVH.SendReceiv
         }
         private async Task<ResLoadPackage> PaskageFromMessage(string Mess)
         {
-            ResLoadPackage resPkg = new(Guid.Empty, -1, -1, "");
+            ResLoadPackage resPkg = new();
             try
             {
                 XDocument xMess = XDocument.Load(Mess);
@@ -131,7 +134,10 @@ namespace ServerSVH.SendReceiv
                         Pkg = await _pkgRepository.Add(Pkg);
                         Pid = Pkg.Pid;
                     }
-                    resPkg = new(uuidPkg, Pid, stPkg, "Pkg");
+                    resPkg.UUID = uuidPkg;
+                    resPkg.Pid = Pid;
+                    resPkg.Status = stPkg;
+                    resPkg.Message="Pkg";
                     var Docs = await _docRepository.GetByFilter(Pid);
                     foreach (var doc in xDocs)
                     {
@@ -165,16 +171,18 @@ namespace ServerSVH.SendReceiv
                         }
 
                     }
+                    resPkg.UUID = uuidPkg;
+                    resPkg.Pid = Pid;
+                    resPkg.Status = GetLastStatus(stPkg).Result;
+                    resPkg.Message = "Ok";
                     
-                    resPkg = new(uuidPkg, Pid, GetLastStatus(stPkg).Result, "Ok");
                 }
-                else resPkg = new(Guid.Empty, -1, 4, "NullPkg");
+                
             }
             catch (Exception ex)
             {
-                string mess = ex.Message;
-                resPkg = new(Guid.Empty, -1, 4, Mess);
-
+                resPkg.Status = 4;
+                resPkg.Message = ex.Message;
             }
             return resPkg;
         }
