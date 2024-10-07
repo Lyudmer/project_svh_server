@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using ServerSVH.Application.Common;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
@@ -9,7 +10,7 @@ namespace ServerSVH.Workflow.Actions
 {
     public class TransformHandler : ActionHandlerBase
     {
-        protected override void ExecuteCore()
+        protected override void ExecuteCore(ref ResLoadPackage resPkg)
         {
             ValidateTransform(ActionNode);
         }

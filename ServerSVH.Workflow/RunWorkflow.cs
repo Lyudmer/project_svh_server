@@ -27,7 +27,7 @@ namespace ServerSVH.Workflow
                 var strXml = WorkfowBuilder(inXmlPkg, ref resPkg);
                 // запуск actions
                 string xml = ActionHelper.Normalize(strXml);
-                resXml = ValidateActions(xml, inXmlPkg);
+                resXml = ValidateActions(xml, inXmlPkg,ref resPkg);
             }
             catch (XsltException xEx)
             {
@@ -37,10 +37,10 @@ namespace ServerSVH.Workflow
             return resXml;
         }
 
-        private static XDocument ValidateActions(string xml, XDocument inXmlPkg)
+        private static XDocument ValidateActions(string xml, XDocument inXmlPkg,ref ResLoadPackage resPkg)
         {
-            var resXml = new XDocument();
-            XDocument actions = XDocument.Load(xml);
+            XDocument resXml = new();
+           XDocument actions = XDocument.Load(xml);
             if (actions != null)
             {
                 ActionContext.Init();
@@ -51,10 +51,12 @@ namespace ServerSVH.Workflow
 
                 if (actItem != null && currXml!=null)
                 {
-                    actionContainer.Init(null, actItem, currXml);
-                    actionContainer.Execute();
+                    actionContainer.Init(null, actItem, currXml,ref resPkg);
+                    actionContainer.Execute(ref resPkg);
                 }
+                resXml.Add(currXml);
             }
+           
             return resXml;
         }
         private string WorkfowBuilder(XDocument inXmlPkg, ref ResLoadPackage resPkg)

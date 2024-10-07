@@ -42,6 +42,25 @@ namespace ServerSVH.DataAccess.Repositories
             return _mapper.Map<Document>(docEntity);
 
         }
+        public async Task<Document> GetByDocType(int pid,string docType)
+        {
+            var docEntity = await _dbContext.Document
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Pid == pid && d.DocType == docType) ?? throw new Exception();
+
+            return _mapper.Map<Document>(docEntity);
+
+        }
+        public async Task<List<Document>> GetListByDocType(int pid, string docType)
+        {
+
+            var query = _dbContext.Document.AsNoTracking();
+
+            if (pid > 0) { query = query.Where(d => d.Pid == pid && d.DocType == docType); }
+
+            var docs = await query.ToListAsync();
+            return _mapper.Map<List<Document>>(docs);
+        }
         public async Task<Document> GetByGuidId(Guid did)
         {
             var docEntity = await _dbContext.Document
@@ -89,7 +108,12 @@ namespace ServerSVH.DataAccess.Repositories
                 .Where(u => u.Id == Id)
                 .ExecuteDeleteAsync();
         }
-       
+        public async Task Delete(Guid Id)
+        {
+            await _dbContext.Document
+                .Where(u => u.DocId == Id)
+                .ExecuteDeleteAsync();
+        }
         public async Task<int> GetLastDocId()
         {
             return await _dbContext.Document.MaxAsync(p => p.Id);

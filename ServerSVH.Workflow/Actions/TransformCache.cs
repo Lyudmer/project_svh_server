@@ -8,13 +8,13 @@ namespace ServerSVH.Workflow.Actions
         public override Uri ResolveUri(Uri baseUri, string relativeUri)
         {
             if (relativeUri == "NSI//TranspNSIXml.xml")
-                return new Uri(baseUri, "Workflow//NSI//TranspNSIXml.xml");
+                return new Uri(baseUri, "..//..//Workflow//NSI//TranspNSIXml.xml");
             Uri Result = base.ResolveUri(baseUri, relativeUri);
             return Result;
         }
         public override object GetEntity(Uri absoluteUri, string role, Type ofObjectToReturn)
         {
-            object entry = base.GetEntity(absoluteUri, role, ofObjectToReturn);
+            var entry = base.GetEntity(absoluteUri, role, ofObjectToReturn);
             return entry;
         }
     }

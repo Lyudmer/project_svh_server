@@ -1,4 +1,5 @@
-﻿using System.Xml;
+﻿using ServerSVH.Application.Common;
+using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
 
@@ -8,7 +9,7 @@ namespace ServerSVH.Workflow.Actions
     {
         private string _nodeFilter;
 
-        protected override void ExecuteCore()
+        protected override void ExecuteCore(ref ResLoadPackage resPkg)
         {
             CreateAndCheckGUID(ActionNode);
         }
@@ -30,9 +31,9 @@ namespace ServerSVH.Workflow.Actions
             }
         }
 
-        public override void Init(ActionHandlerBase parentAction, XElement actionNode, XElement currentDocument)
+        public override void Init(ActionHandlerBase parentAction, XElement actionNode, XElement currentDocument,ref ResLoadPackage resPkg)
         {
-            base.Init(parentAction, actionNode, currentDocument);
+            base.Init(parentAction, actionNode, currentDocument,ref resPkg);
             if (_nodeFilter is not null  
                 && ActionNode.Attribute("xpath") is not null
                 && _nodeFilter == ActionNode.Value)

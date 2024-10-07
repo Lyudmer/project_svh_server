@@ -7,13 +7,18 @@ using ServerSVH.SendReceiv.Consumer;
 using ServerSVH.SendReceiv.Producer;
 using System.Xml.Linq;
 using ServerSVH.Application.Common;
+using System.Security.Cryptography;
+using MongoDB.Driver;
+using System.Reflection.Metadata;
+using Document = ServerSVH.Core.Models.Document;
+using MongoDB.Driver.Core.Operations;
 
 namespace ServerSVH.SendReceiv
 {
     public class ServerServices(IRabbitMQConsumer rabbitMQConsumer,
             IDocumentsRepository docRepository, IDocRecordRepository docRecordRepository,
                 IPackagesRepository pkgRepository, IMessagePublisher messagePublisher,
-                IStatusGraphRepository statusGraphRepository) : IServerServices
+                IStatusGraphRepository statusGraphRepository,IRunWorkflow runWorkflow) : IServerServices
     {
         private readonly IRabbitMQConsumer _rabbitMQConsumer = rabbitMQConsumer;
         private readonly IPackagesRepository _pkgRepository = pkgRepository;
@@ -21,20 +26,21 @@ namespace ServerSVH.SendReceiv
         private readonly IDocRecordRepository _docRecordRepository = docRecordRepository;
         private readonly IMessagePublisher _messagePublisher = messagePublisher;
         private readonly IStatusGraphRepository _statusGraphRepository = statusGraphRepository;
-
+        private readonly IRunWorkflow _runWorkflow = runWorkflow;
         async Task<int> IServerServices.LoadMessage()
         {
             int stPkg = 0;
             try
             {
                 // получить сообщение с пакетом
-                
+                var resMessEmul = _rabbitMQConsumer.LoadMessage("EmulSendDoc");
                 var resMess = _rabbitMQConsumer.LoadMessage("SendPkg");
                 // создать пакет и запустить workflow
-                if (resMess != null)
+                if (resMess != null || resMessEmul!=null)
                 {
                     ResLoadPackage resPkg = await PaskageFromMessage(resMess);
-
+                    XDocument xPkg = XDocument.Load(resMess);
+                    
                     switch (resPkg.Status)
                     {
                         case -1:
@@ -47,13 +53,47 @@ namespace ServerSVH.SendReceiv
                             //отправить собщение клиенту
                             _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
                             //запуск workflow
-
+                            _runWorkflow.RunBuilderXml(xPkg,ref resPkg);
+                            
+                            if (stPkg == 3) goto case 3;
+                            if (stPkg == 4) goto case 4;
                             break;
                         case 3:
                             _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
-                            break;
-                        //запуск workflow
+                            _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
 
+                            if (stPkg == 5) goto case 5;
+                            if (stPkg == 4) goto case 4;
+
+                            break;
+                        case 5:
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            try
+                            {
+                                List<XDocument> resXml = await CreatePkgForEmul(resPkg);
+                                var CountDoc = resXml.Count();
+                                
+                                foreach (XDocument xDoc in resXml)
+                                {
+                                    _messagePublisher.SendMessage(xDoc.ToString(), "SendEmulPkg");
+                                    CountDoc--;
+                                }
+                                if (CountDoc == 0) 
+                                {
+                                    resPkg.Status = 208;
+                                    await _pkgRepository.UpdateStatus(resPkg.Pid, resPkg.Status);
+                                    _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                                    goto case 208;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                resPkg.Status = 4;
+                                resPkg.Message = ex.Message;
+                                goto case 4;
+                            }
+                            break;
+                        case 208:
                         default:
                             // ждем смены статуса
                             break;
@@ -67,6 +107,30 @@ namespace ServerSVH.SendReceiv
 
             }
             return stPkg;
+        }
+       
+        private async Task <List<XDocument>> CreatePkgForEmul(ResLoadPackage resPkg)
+        {
+            List<XDocument> resXml = [];
+            try
+            {
+                var docs = await _docRepository.GetByFilter(resPkg.Pid);
+                foreach (var docId in docs.AsParallel().Where(d => d.DocType == "archive-doc.cfg.xml")
+                                        .Select(d => d.DocId).ToList())
+                    foreach (var doc in docs)
+                    {
+                        var dRecord = await _docRecordRepository.GetByDocId(doc.DocId);
+                        if (dRecord != null)
+                        {
+                            XDocument xDoc = XDocument.Load(dRecord.ToString());
+                            resXml.Add(xDoc);
+                        }
+                    }
+            }
+            catch (Exception) 
+            { }
+
+            return resXml;// status send to arch
         }
         public XDocument CreateResultXml(ResLoadPackage resPkg)
         {
@@ -139,43 +203,26 @@ namespace ServerSVH.SendReceiv
                     resPkg.Status = stPkg;
                     resPkg.Message="Pkg";
                     var Docs = await _docRepository.GetByFilter(Pid);
+                    int countDoc= Docs.Count();
                     foreach (var doc in xDocs)
                     {
-                        var doc_1 = await _docRepository.GetLastDocId() + 1;
-                        var oldDoc = await _docRepository.GetByGuidId(doc.docid);
-                        if (oldDoc != null)
-                        {
-                            await _docRepository.Update(doc.docid, Document.Create(oldDoc.Id, doc.docid, doc.doctype, doc.doctext.Length,
-                                                  DopFunction.GetHashMd5(doc.doctext), DopFunction.GetSha256(doc.doctext),
-                                                  Pid, doc.doccreate, DateTime.Now));
-                            var oldDocRec = await _docRecordRepository.GetByDocId(doc.docid);
-                            if (oldDocRec != null)
-                            {
-                                await _docRecordRepository.Update(doc.docid, DocRecord.Create(oldDocRec.Id, doc.docid, doc.doctext, doc.doccreate, DateTime.Now));
-                            }
-                            else
-                            {
-                                var dRecordId = await _docRecordRepository.Add(DocRecord.Create(Guid.NewGuid(), doc.docid, doc.doctext, doc.doccreate, DateTime.Now));
-                            }
-                        }
-                        else
-                        {
-                            var Doc = await _docRepository.Add(Document.Create(doc_1, doc.docid, doc.doctype, doc.doctext.Length,
-                                              DopFunction.GetHashMd5(doc.doctext), DopFunction.GetSha256(doc.doctext),
-                                              Pid, doc.doccreate, DateTime.Now));
-
-                            if (Doc is not null)
-                            {
-                                var dRecordId = await _docRecordRepository.Add(DocRecord.Create(Guid.NewGuid(), Doc.DocId, doc.doctext, doc.doccreate, DateTime.Now));
-                            }
-                        }
+                        var gDoc = SaveDocToPkg(doc.docid, string.Empty, doc.doctext, Pid);
+                        if (gDoc != null) countDoc--;
 
                     }
+                    
                     resPkg.UUID = uuidPkg;
                     resPkg.Pid = Pid;
-                    resPkg.Status = GetLastStatus(stPkg).Result;
-                    resPkg.Message = "Ok";
-                    
+                    if (countDoc == 0)
+                    {
+                        resPkg.Status = GetLastStatus(stPkg).Result;
+                        resPkg.Message = "Ok";
+                    }
+                    else
+                    {
+                        resPkg.Status = 4;
+                        resPkg.Message = "Error add documents";
+                    }
                 }
                 
             }
@@ -192,6 +239,101 @@ namespace ServerSVH.SendReceiv
             var NewSt= await _statusGraphRepository.GetNewSt(OldSt);
            
             return NewSt;
+        }
+        public async Task<Guid> SaveDocToPkg(Guid gDocId,string docName, string docRecord, int Pid)
+        {
+           Guid dRecordId = Guid.Empty;
+           Guid resDoc = Guid.Empty;
+           var Doc =(gDocId.ToString().Length>0)? await _docRepository.GetByGuidId(gDocId): 
+                                                  await _docRepository.GetByDocType(Pid,docName);
+
+           var doc_1 = await _docRepository.GetLastDocId() + 1;
+           if (Doc is not null)
+           {
+              await _docRepository.Update(Doc.DocId, Document.Create(Doc.Id, Doc.DocId, docName,
+                                              docRecord.Length,DopFunction.GetHashMd5(docRecord), 
+                                              DopFunction.GetSha256(docRecord),
+                                              Pid, Doc.CreateDate, DateTime.Now));
+
+              var oldDocRec = await _docRecordRepository.GetByDocId(Doc.DocId);
+              if (oldDocRec != null)
+              {
+                  await _docRecordRepository.Update(Doc.DocId, DocRecord.Create(oldDocRec.Id, Doc.DocId,
+                                                    docRecord, oldDocRec.CreateDate, DateTime.Now));
+                  dRecordId= oldDocRec.DocId;
+              }
+              else
+              {
+                  dRecordId = await _docRecordRepository.Add(DocRecord.Create(Guid.NewGuid(),
+                                      Doc.DocId,docRecord, DateTime.Now, DateTime.Now));
+              }
+           }
+           else
+           {
+               Doc = await _docRepository.Add(Document.Create(doc_1, Guid.NewGuid(), docName,
+                                         docRecord.Length, DopFunction.GetHashMd5(docRecord),
+                                         DopFunction.GetSha256(docRecord),
+                                         Pid, DateTime.Now, DateTime.Now));
+
+               if (Doc is not null)
+               {
+                    dRecordId = await _docRecordRepository.Add(DocRecord.Create(Guid.NewGuid(), Doc.DocId,
+                                                                  docRecord, DateTime.Now, DateTime.Now));
+               }
+           }
+
+           if(dRecordId.ToString().Length>0 && Doc is not null)
+                resDoc= Doc.DocId;
+           
+           return resDoc;
+        }
+        public async Task<Guid> ExtractEDContainerToPkg(string docName, string docRecord, int Pid)
+        {
+            Guid dRecordId = Guid.Empty;
+            Guid resDoc = Guid.Empty;
+            
+            var doc_1 = await _docRepository.GetLastDocId() + 1;
+            
+            var Doc = await _docRepository.Add(Document.Create(doc_1, Guid.NewGuid(), docName,
+                                          docRecord.Length, DopFunction.GetHashMd5(docRecord),
+                                          DopFunction.GetSha256(docRecord),
+                                          Pid, DateTime.Now, DateTime.Now));
+            if (Doc is not null)
+            {
+              dRecordId = await _docRecordRepository.Add(DocRecord.Create(Guid.NewGuid(), Doc.DocId,
+                                                         docRecord, DateTime.Now, DateTime.Now));
+            }
+
+            if (dRecordId.ToString().Length > 0 && Doc is not null)
+                resDoc = Doc.DocId;
+
+            return resDoc;
+        }
+        public async Task<bool> DeleteFromPkg(string docName, int Pid)
+        {
+            
+            var Docs = await _docRepository.GetListByDocType(Pid, docName);
+            int countDoc = Docs.Count;
+            if (countDoc > 0) 
+            {
+                foreach (var Doc in Docs) 
+                {
+                    await _docRepository.Delete(Doc.DocId);
+                    var rDoc = await _docRepository.GetByGuidId(Doc.DocId);
+                    if (rDoc is null) countDoc--;
+                }
+
+            }
+            return (countDoc == 0);
+        }
+        public async Task<bool> UpdateStatusPkg(int Pid, int stPkg)
+        {
+            await _pkgRepository.UpdateStatus(Pid, stPkg);
+
+            var Pkg =await _pkgRepository.GetById(Pid);
+            if (Pkg is null) return false;
+            
+            return (Pkg.StatusId==stPkg);
         }
     }
    }

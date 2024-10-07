@@ -29,7 +29,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServerSVH.SendReceiv", "Ser
 		{DCA15240-33BE-4450-8223-E546638308F8} = {DCA15240-33BE-4450-8223-E546638308F8}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerSVH.Workflow", "ServerSVH.Workflow\ServerSVH.Workflow.csproj", "{BA5E9FF9-DD6D-4721-83D7-4F37D72BA724}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServerSVH.Workflow", "ServerSVH.Workflow\ServerSVH.Workflow.csproj", "{BA5E9FF9-DD6D-4721-83D7-4F37D72BA724}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

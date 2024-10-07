@@ -1,4 +1,5 @@
-﻿using System.Xml;
+﻿using ServerSVH.Application.Common;
+using System.Xml;
 using System.Xml.Linq;
 
 
@@ -6,7 +7,7 @@ namespace ServerSVH.Workflow.Actions
 {
     public class ActionContainer : ActionHandlerBase
     {
-        protected override void ExecuteCore()
+        protected override void ExecuteCore(ref ResLoadPackage resPkg)
         {
             if (ActionNode == null) throw new ArgumentException("ActionNode is null.");
             if (CurrentDocument == null) throw new ArgumentException("CurrentDocument is null.");
@@ -16,11 +17,13 @@ namespace ServerSVH.Workflow.Actions
 
             foreach (var node in nodes)
             {
-                if (!DoAction(node, CurrentDocument)) break;
+                if (!DoAction(node, CurrentDocument,ref resPkg)) 
+
+                    break;
             }
         }
 
-        public ActionHandlerBase? InitActionHandler(XElement actionNode, XElement currentDocument)
+        public ActionHandlerBase? InitActionHandler(XElement actionNode, XElement currentDocument,ref  ResLoadPackage resPkg)
         {
 
             var handlerType = ActionHelper.FindActionHandlerType(actionNode.Name.ToString());
@@ -29,17 +32,17 @@ namespace ServerSVH.Workflow.Actions
             var actionHandler = Activator.CreateInstance(handlerType) as ActionHandlerBase;
             if (actionHandler == null) return null;
 
-            actionHandler.Init(this, actionNode, currentDocument);
+            actionHandler.Init(this, actionNode, currentDocument,ref resPkg);
 
             return actionHandler;
         }
 
-        public bool DoAction(XElement actionNode, XElement currentDocument)
+        public bool DoAction(XElement actionNode, XElement currentDocument,ref ResLoadPackage resPkg)
         {
-            var actionHandler = InitActionHandler(actionNode, currentDocument);
+            var actionHandler = InitActionHandler(actionNode, currentDocument,ref resPkg);
             if (actionHandler == null) return true;
 
-            actionHandler.Execute();
+            actionHandler.Execute(ref resPkg);
             if (actionHandler.IsSuccess) CurrentDocument = actionHandler.CurrentDocument;
 
             return actionHandler.IsSuccess;

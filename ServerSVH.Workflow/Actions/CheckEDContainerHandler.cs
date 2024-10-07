@@ -2,13 +2,13 @@
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
-
+using ServerSVH.Application.Common;
 
 namespace ServerSVH.Workflow.Actions
 {
     public class CheckEDContainerHandler : ActionHandlerBase
     {
-        protected override void ExecuteCore()
+        protected override void ExecuteCore(ref ResLoadPackage resPkg)
         {
             CheckEDContainer(ActionNode);
         }

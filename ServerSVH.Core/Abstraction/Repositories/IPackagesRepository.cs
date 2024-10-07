@@ -10,6 +10,7 @@ namespace ServerSVH.Core.Abstraction.Repositories
         Task<Package> GetById(int Pid);
         Task<List<Package>> GetByPage(int Page, int Page_Size);
         Task<int> GetLastPkgId();
+   
         Task<Package> GetPkgByGuid(Guid UserId, Guid UUID);
         Task<List<Package>> GetPkgUser(Guid UserId);
         Task<Package> GetPkgWithDoc(int Pid);
