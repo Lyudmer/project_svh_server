@@ -10,7 +10,7 @@ namespace ServerSVH.SendReceiv.Producer
         private readonly IRabbitMQBase _rabbitMQBase = rabbitMQBase;
         public void SendMessage<T>(T xPkg, string CodeCMN)
         {
-            using IModel channel = _rabbitMQBase.GetConfigureRabbitMQ();
+            using IModel channel =  _rabbitMQBase.GetConfigureRabbitMQ();
 
             channel.QueueDeclare(CodeCMN, exclusive: false);
             var strPkg = xPkg?.ToString();

@@ -5,7 +5,7 @@ using System.Xml.Linq;
 namespace ServerSVH.Workflow.Actions
 {
     public abstract class ActionHandlerBase
-    { 
+    {
         public ActionHandlerBase()
         {
             _context = ActionContext.Instance;

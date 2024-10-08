@@ -59,7 +59,7 @@ namespace ServerSVH.Workflow
            
             return resXml;
         }
-        private string WorkfowBuilder(XDocument inXmlPkg, ref ResLoadPackage resPkg)
+        private static string WorkfowBuilder(XDocument inXmlPkg, ref ResLoadPackage resPkg)
         {
             string filexslt = "Workflow\\workflow.xsl";
             string resAction = string.Empty;

@@ -125,28 +125,13 @@
 		</CheckSchema> 
 		<Save name="whinventory.cfg.xml"/>
 		<SetState>210</SetState>
-		<SetProperty name="ChainLocked">true</SetProperty>
 	</xsl:template>
 	<xsl:template name="svh_make_result">
-		<Transform name="COMMON/deletenamespace.xsl"/>
 		<Transform name="COMMON/package_add_confirmwhdocreg.xsl"/>
 		<Save name="ConfirmWHDocReg.cfg.xml"/>
 	</xsl:template>
 	
 	<xsl:template name="result">
-		<xsl:if test="$pkgstatus=99">
-			<xsl:variable name="TIN" select="/Package/DesNotif_PIResult[last()]/DesNotif_PIResult_ITEM/DocumentID"/>
-			<xsl:variable name="RefDocumentID" select="/Package/DesNotif_PIResult[last()]/DesNotif_PIResult_ITEM/RefDocumentID"/>
-			<xsl:if test="string-length($TIN)>0">
-				<SetProperty name="TIN"><xsl:value-of select="$TIN"/></SetProperty>
-			</xsl:if>
-			<xsl:if test="string-length($RefDocumentID)>0">
-				<SetProperty name="RefDocumentID"><xsl:value-of select="$RefDocumentID"/></SetProperty>
-			</xsl:if>
-			<xsl:if test="package-properties/prop[@name='LockChainAfterConfirm']='true'">
-				<SetProperty name="ChainLocked">true</SetProperty>
-			</xsl:if>	
-		</xsl:if>
 		<xsl:choose>
 			<xsl:when test="$pkgstatus=4 and count($pkgload14004)>0">
 				<Transform name="COMMON/package.error.xsl"/>

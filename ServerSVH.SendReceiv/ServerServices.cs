@@ -12,6 +12,11 @@ using MongoDB.Driver;
 using System.Reflection.Metadata;
 using Document = ServerSVH.Core.Models.Document;
 using MongoDB.Driver.Core.Operations;
+using System.Text;
+using System.Xml.Xsl;
+using System.Xml;
+using System.Xml.XPath;
+using System.Collections.Generic;
 
 namespace ServerSVH.SendReceiv
 {
@@ -30,6 +35,8 @@ namespace ServerSVH.SendReceiv
         async Task<int> IServerServices.LoadMessage()
         {
             int stPkg = 0;
+            int CountDoc = 0;  
+            List<XDocument> resXml;
             try
             {
                 // получить сообщение с пакетом
@@ -38,9 +45,18 @@ namespace ServerSVH.SendReceiv
                 // создать пакет и запустить workflow
                 if (resMess != null || resMessEmul!=null)
                 {
-                    ResLoadPackage resPkg = await PaskageFromMessage(resMess);
-                    XDocument xPkg = XDocument.Load(resMess);
-                    
+                    ResLoadPackage resPkg= new();
+                    XDocument xPkg= new();
+                    if (resMess != null)
+                    {
+                        resPkg = await PaskageFromMessage(resMess);
+                        xPkg = XDocument.Load(resMess);
+                    }
+                    if (resMessEmul != null)
+                    {
+                        resPkg = await PaskageFromMessageEmul(resMessEmul);
+                        xPkg = XDocument.Load(resMessEmul);
+                    }
                     switch (resPkg.Status)
                     {
                         case -1:
@@ -70,20 +86,27 @@ namespace ServerSVH.SendReceiv
                             _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
                             try
                             {
-                                List<XDocument> resXml = await CreatePkgForEmul(resPkg);
-                                var CountDoc = resXml.Count();
-                                
-                                foreach (XDocument xDoc in resXml)
+                                resXml = await CreatePkgForEmul(resPkg, "archive-doc.cfg.xml");
+                                if (resXml != null)
                                 {
-                                    _messagePublisher.SendMessage(xDoc.ToString(), "SendEmulPkg");
-                                    CountDoc--;
-                                }
-                                if (CountDoc == 0) 
-                                {
-                                    resPkg.Status = 208;
-                                    await _pkgRepository.UpdateStatus(resPkg.Pid, resPkg.Status);
-                                    _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
-                                    goto case 208;
+                                    CountDoc = resXml.Count();
+                                    foreach (XDocument xDoc in resXml)
+                                    {
+                                        _messagePublisher.SendMessage(xDoc.ToString(), "SendEmulPkg");
+                                        CountDoc--;
+                                    }
+                                    if (CountDoc == 0)
+                                    {
+                                        resPkg.Status = 208;
+                                        await _pkgRepository.UpdateStatus(resPkg.Pid, resPkg.Status);
+                                        _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                                        goto case 208;
+                                    }
+                                    else {
+                                        resPkg.Status = 4;
+                                        resPkg.Message = "error archive-doc";
+                                        goto case 4;
+                                    }
                                 }
                             }
                             catch (Exception ex)
@@ -91,9 +114,42 @@ namespace ServerSVH.SendReceiv
                                 resPkg.Status = 4;
                                 resPkg.Message = ex.Message;
                                 goto case 4;
-                            }
+                            };
                             break;
                         case 208:
+                            if (resPkg.Message.Contains("arch"))
+                            {
+                                xPkg = await CreatePaskageAddAcrhXml(resPkg.Pid);
+                                _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
+                                if (resPkg.Status==217) goto case 217;
+                            };
+                         break;
+                        case 217:
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
+                            if (resPkg.Status == 210) goto case 210;
+                           
+                            break;
+                        case 210:
+                            resXml = await CreatePkgForEmul(resPkg, "armti.cfg.xml");
+                            if (resXml != null)
+                            {
+                                _messagePublisher.SendMessage(resXml.ToString(), "SendEmulPkg");
+                                await _pkgRepository.UpdateStatus(resPkg.Pid, resPkg.Status);
+                                _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            }
+                            else
+                            {
+                                resPkg.Status = 4;
+                                resPkg.Message = "error armti";
+                                goto case 4;
+                            }
+                            break;
+                        case 214:
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg, "ConfirmWHDocReg.cfg.xml"), "DocResultPkg");
+                            break;
                         default:
                             // ждем смены статуса
                             break;
@@ -109,28 +165,51 @@ namespace ServerSVH.SendReceiv
             return stPkg;
         }
        
-        private async Task <List<XDocument>> CreatePkgForEmul(ResLoadPackage resPkg)
+        private async Task <List<XDocument>> CreatePkgForEmul(ResLoadPackage resPkg,string docType)
         {
             List<XDocument> resXml = [];
             try
             {
                 var docs = await _docRepository.GetByFilter(resPkg.Pid);
-                foreach (var docId in docs.AsParallel().Where(d => d.DocType == "archive-doc.cfg.xml")
+                foreach (var docId in docs.AsParallel().Where(d => d.DocType == docType)
                                         .Select(d => d.DocId).ToList())
                     foreach (var doc in docs)
                     {
                         var dRecord = await _docRecordRepository.GetByDocId(doc.DocId);
                         if (dRecord != null)
                         {
-                            XDocument xDoc = XDocument.Load(dRecord.ToString());
+                            XDocument xDoc = XDocument.Load(dRecord.DocText);
                             resXml.Add(xDoc);
                         }
                     }
             }
             catch (Exception) 
-            { }
+            { 
+
+            }
 
             return resXml;// status send to arch
+        }
+        private async Task<XDocument> CreatePaskageAddAcrhXml(int Pid)
+        {
+            var xPkg = new XDocument();
+            var elem = new XElement("Package");
+            elem.SetAttributeValue("pid", Pid);
+            var elem_props = new XElement("package-properties"
+                , new XElement("props", new XAttribute("name", "uuid"), _pkgRepository.GetById(Pid).Result.UUID.ToString())
+                , new XElement("props", new XAttribute("name", "UserId"), _pkgRepository.GetById(Pid).Result.UserId.ToString()));
+            elem.Add(elem_props);
+            var docs = await _docRepository.GetByFilter(Pid);
+            foreach (var docId in docs.AsParallel().Select(d => d.DocId).ToList())
+                foreach (var doc in docs)
+                {
+                    elem.SetAttributeValue("docid", doc.DocId.ToString());
+                    elem.SetAttributeValue("doctype", doc.DocType);
+                    elem.SetAttributeValue("createdate", doc.CreateDate);
+                    elem.Add(_docRecordRepository.GetByDocId(doc.DocId).ToString());
+                }
+            xPkg.Add(elem);
+            return xPkg;
         }
         public XDocument CreateResultXml(ResLoadPackage resPkg)
         {
@@ -138,9 +217,31 @@ namespace ServerSVH.SendReceiv
 
             var elem = new XElement("Result");
             elem.SetAttributeValue("pid", resPkg.Pid.ToString());
-            elem.Add(new XElement("uuid", resPkg.UUID.ToString()));
-            elem.Add(new XElement("Status", resPkg.Status.ToString()));
-            elem.Add(new XElement("Message", resPkg.Message));
+            var elem_props = new XElement("package-properties"
+              , new XElement("props", new XAttribute("name", "Status"), resPkg.Status.ToString())
+              , new XElement("props", new XAttribute("name", "uuid"), resPkg.UUID.ToString())
+              , new XElement("props", new XAttribute("name", "Message"), resPkg.Message));
+            elem.Add(elem_props);
+            xRes.Add(elem);
+            return xRes;
+        }
+        public async Task<XDocument> CreateResultXml(ResLoadPackage resPkg,string docType)
+        {
+            var xRes = new XDocument();
+
+            var elem = new XElement("Package");
+            elem.SetAttributeValue("pid", resPkg.Pid.ToString());
+            var elem_props = new XElement("package-properties"
+             , new XElement("props", new XAttribute("name", "Status"), resPkg.Status.ToString())
+             , new XElement("props", new XAttribute("name", "uuid"), resPkg.UUID.ToString())
+             , new XElement("props", new XAttribute("name", "Message"), resPkg.Message));
+            elem.Add(elem_props);
+            var doc = await _docRepository.GetByDocType(resPkg.Pid, docType);
+            if (doc != null) 
+            {
+                var docRecord = await _docRecordRepository.GetByDocId(doc.DocId);
+                if (docRecord != null) { elem.Add(docRecord.DocText); }
+            }
             xRes.Add(elem);
             return xRes;
         }
@@ -152,7 +253,7 @@ namespace ServerSVH.SendReceiv
                 XDocument xMess = XDocument.Load(Mess);
 
                 var xPkg = xMess.Element("Package")?
-                           .Elements("*").Where(p => p.Attribute("ctmtd")?.Value == "CfgName");
+                           .Elements("*").Where(p => p.Attribute("docs")?.Value == "CfgName");
                 if (xPkg is not null)
                 {
                     //create package
@@ -234,6 +335,98 @@ namespace ServerSVH.SendReceiv
             return resPkg;
         }
 
+        private async Task<ResLoadPackage> PaskageFromMessageEmul(string Mess)
+        {
+            int CountResult=0;
+            int CountSendDoc = 0;
+            ResLoadPackage resPkg = new();
+
+            try
+            {
+                XDocument xMess = XDocument.Load(Mess);
+                var xResAch = new XDocument();
+                string typeDoc = string.Empty;
+                string nodeDoc = string.Empty;
+                string xpath = string.Empty;
+                if (xMess.Elements("ArchResult") is not null)
+                {
+                    typeDoc = "archive-rtu-doc-result.cfg.xml";
+                    xResAch = ResultTransform(xMess);
+                    nodeDoc = "DesNotif_PIResult";
+                    xpath = "DesNotif_PIResult_ITEM/DocumentID";
+                }
+                if (xMess.Elements("ConfirmWHDocReg") is not null)
+                {
+                    typeDoc = "ConfirmWHDocReg.cfg.xml";
+                    xResAch = xMess;
+                    nodeDoc = "ConfirmWHDocReg";
+                    xpath = "ConfirmWHDocReg/DocumentID";
+                }
+                if (xResAch is not null)
+                {
+
+                    //create result
+                    var pid_1 = await _pkgRepository.GetLastPkgId();
+                    var resPid = xResAch.Elements(nodeDoc)?.Attributes("pid").ToString();
+                    var userPkg = ConverterValue.ConvertTo<Guid>(xResAch.Elements(nodeDoc)?.Attributes("userid").ToString());
+                    var uuidPkg = ConverterValue.ConvertTo<Guid>(xResAch.Elements(nodeDoc)?.Attributes("uuid").ToString());
+                   
+                    if (resPid is not null && int.TryParse(resPid, out int Pid))
+                    {
+                        if (pid_1 <= Pid) pid_1 = Pid;
+                    }
+
+                    var xDocs = from xDoc in xResAch.Elements(nodeDoc)
+                        select new
+                        {
+                            doctype = typeDoc,
+                            docid = ConverterValue.ConvertTo<Guid>(xDoc.XPathSelectElement(xpath)?.Value),
+                            doccreate = DateTime.Now,
+                            doctext = xDoc.ToString()
+                        };
+                        
+                    // проверить наличие пакета на сервере
+                    var getPkg = await _pkgRepository.GetPkgByGuid(userPkg, uuidPkg);
+                    if (getPkg != null) pid_1 = getPkg.Pid;
+                    int countDoc = xDocs.Count();
+                    foreach (var doc in xDocs)
+                    {
+                        var gDoc = SaveDocToPkg(doc.docid, doc.doctype, doc.doctext, pid_1);
+                        if (gDoc != null) countDoc--;
+
+                    }
+
+                    if (xMess.Elements("ArchResult") is not null)
+                    {
+                        var ListDoc = await _docRepository.GetListByDocType(pid_1, "archive-doc.cfg.xml");
+                        if (ListDoc != null) { CountSendDoc = ListDoc.Count(); };
+
+                        var ListDocRes = await _docRepository.GetListByDocType(pid_1, "archive-rtu-doc-result.cfg.xml");
+                        if (ListDocRes != null) { CountResult = ListDocRes.Count(); };
+                        resPkg.UUID = uuidPkg;
+                        resPkg.Pid = pid_1;
+                        resPkg.Status = 208;
+                        resPkg.Message = (CountResult == CountSendDoc) ? "arch" : "waitarch";
+                    }
+                    if (xMess.Elements("ConfirmWHDocReg") is not null) 
+                    {
+                        resPkg.UUID = uuidPkg;
+                        resPkg.Pid = pid_1;
+                        resPkg.Status = 214;
+                        resPkg.Message = "add ConfirmWHDocReg";
+
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                resPkg.Status = 4;
+                resPkg.Message = ex.Message;
+
+            }
+            return resPkg;
+        }
         private async Task<int> GetLastStatus(int OldSt)
         {   
             var NewSt= await _statusGraphRepository.GetNewSt(OldSt);
@@ -334,6 +527,28 @@ namespace ServerSVH.SendReceiv
             if (Pkg is null) return false;
             
             return (Pkg.StatusId==stPkg);
+        }
+        public static XDocument ResultTransform(XDocument inMess)
+        {
+            XDocument resXml = new();
+
+            string filexslt ="Workflow\\COMMON\\package.result_arch.xsl";
+           
+            using (var stringReader = new StringReader(filexslt))
+            {
+                using XmlReader xsltReader = XmlReader.Create(stringReader);
+                var transformer = new XslCompiledTransform();
+                transformer.Load(xsltReader);
+                XsltArgumentList args = new();
+                using XmlReader oldDocumentReader = inMess.CreateReader();
+
+                StringBuilder resultStr = new(1024 * 1024 * 10);
+                XmlWriter resultWriter = XmlWriter.Create(resultStr);
+                transformer.Transform(oldDocumentReader, args, resultWriter);
+                resultWriter?.Close();
+                resXml.Add(resultStr.ToString());
+            }
+            return resXml;
         }
     }
    }

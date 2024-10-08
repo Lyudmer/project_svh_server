@@ -33,7 +33,7 @@
 				</xsl:otherwise>
 			</xsl:choose>
 		</xsl:variable>
-		<DesNotif_PIResult xmlns:docs="https://documents.ru" docs:CfgName="DesNotif_PIResult.cfg.xml">
+		<DesNotif_PIResult >
 			<xsl:attribute name="pid"><xsl:value-of select="$PidPkg"/></xsl:attribute>
 			<DesNotif_PIResult_ITEM>
 				<PackageId><xsl:value-of select="$PidPkg"/></PackageId>
@@ -48,8 +48,8 @@
 			</DesNotif_PIResult_ITEM>
 		</DesNotif_PIResult>
 	</xsl:template>
-	<xsl:template name="DesNotif_PIResult_Res" xmlns:docs="https://documents.ru">
-		<DesNotif_PIResult xmlns:docs="https://documents.ru" docs:CfgName="DesNotif_PIResult.cfg.xml">
+	<xsl:template name="DesNotif_PIResult_Res">
+		<DesNotif_PIResult>
 			<xsl:for-each select="@*[not(contains(local-name(),'CfgName'))]">
 				<xsl:attribute name="{local-name()}"><xsl:value-of select="."/></xsl:attribute>
 			</xsl:for-each>

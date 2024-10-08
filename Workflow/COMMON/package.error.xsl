@@ -10,7 +10,7 @@
 				<xsl:with-param name="NodeName" select="*[local-name()='BadDocument']/*[local-name()='DocName']"/>
 			</xsl:call-template>	
 		</xsl:variable>			
-		<DesNotif_PIResult xmlns:docs="https://documents.ru" docs:CfgName="desnotif_piresult.cfg.xml">
+		<DesNotif_PIResult>
 			<DesNotif_PIResult_ITEM>
 				<ResultInformation>
 					<xsl:for-each select="*[local-name()='BadDocument']/*[local-name()='Error']">

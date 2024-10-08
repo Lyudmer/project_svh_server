@@ -16,11 +16,12 @@
 	<xsl:template match="CONFIRMWHDOCREGTYPE"/>
 	
 	<xsl:template match="ConfirmWHDocReg">
-		<CONFIRMWHDOCREGTYPE xmlns:docs="https://documents" docs:CfgName="ConfirmWHDocReg.cfg.xml">
+		<CONFIRMWHDOCREGTYPE>
 			<CONFIRMWHDOCREGTYPE_ITEM>
 				<xsl:variable name="RegDocDat" select="concat(substring(RegNumberDoc/RegistrationDate,9,2),substring(RegNumberDoc/RegistrationDate,6,2),substring(RegNumberDoc/RegistrationDate,3,2))"/>
-				<DocumentID><xsl:value-of select="RegNumberDoc/CustomsCode"/>/<xsl:value-of select="$RegDocDat"/>/<xsl:value-of select="RegNumberDoc/GTDNumber"/></DocumentID>
+				<DocumentID><xsl:value-of select="DocumentID"/></DocumentID>
 				<RefDocumentID><xsl:value-of select="RefDocumentID"/></RefDocumentID>
+				<RegNum><xsl:value-of select="RegNumberDoc/CustomsCode"/>/<xsl:value-of select="$RegDocDat"/>/<xsl:value-of select="RegNumberDoc/GTDNumber"/></RegNum>
 				<RegDate><xsl:value-of select="RegDate"/></RegDate>
 				<RegTime><xsl:value-of select="RegTime"/></RegTime>
 				<PresentDate><xsl:value-of select="PresentDate"/></PresentDate>
