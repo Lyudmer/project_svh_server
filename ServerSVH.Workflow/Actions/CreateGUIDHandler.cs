@@ -8,6 +8,8 @@ namespace ServerSVH.Workflow.Actions
     {
         private string _nodeFilter;
 
+        public CreateGUIDHandler(string nodeFilter) => _nodeFilter = nodeFilter;
+
         protected override void ExecuteCore(ref ResLoadPackage resPkg)
         {
             CreateAndCheckGUID(ActionNode);

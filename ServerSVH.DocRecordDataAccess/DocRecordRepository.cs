@@ -28,7 +28,7 @@ namespace ServerSVH.DocRecordDataAccess
 
         }
 
-        public async Task<DocRecord?> GetByDocId(Guid docId) =>
+        public async Task<DocRecord> GetByDocId(Guid docId) =>
         await _docRecordCollection.Find(x => x.DocId == docId).FirstOrDefaultAsync();
 
         public async Task<Guid> Add(DocRecord docRecord)
