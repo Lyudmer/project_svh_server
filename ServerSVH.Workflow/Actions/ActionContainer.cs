@@ -23,7 +23,7 @@ namespace ServerSVH.Workflow.Actions
             }
         }
 
-        public ActionHandlerBase? InitActionHandler(XElement actionNode, XElement currentDocument,ref  ResLoadPackage resPkg)
+        public ActionHandlerBase InitActionHandler(XElement actionNode, XElement currentDocument,ref  ResLoadPackage resPkg)
         {
 
             var handlerType = ActionHelper.FindActionHandlerType(actionNode.Name.ToString());

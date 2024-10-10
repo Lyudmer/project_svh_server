@@ -4,7 +4,7 @@ namespace ServerSVH.Workflow.Actions
 {
     public class ActionContext
     {
-        private static ActionContext? _instance;
+        private static ActionContext _instance;
 
         private Dictionary<string, int> actionSequence = new();
         public SchemasCache Schemas = new();

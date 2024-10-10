@@ -25,6 +25,15 @@ namespace ServerSVH.DataAccess.Repositories
             return _mapper.Map<Package>(pkgEntity);
 
         }
+        public async Task<Package> GetByUUID(Guid Uuid)
+        {
+            var pkgEntity = await _dbContext.Packages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.UUID== Uuid) ?? throw new Exception();
+
+            return _mapper.Map<Package>(pkgEntity);
+
+        }
         public async Task<List<Package>> GetAll()
         {
             var query = _dbContext.Packages

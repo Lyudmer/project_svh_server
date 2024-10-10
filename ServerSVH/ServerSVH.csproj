@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -26,12 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\ServerSVH.Application\ServerSVH.Application.csproj" />
     <ProjectReference Include="..\ServerSVH.DataAccess\ServerSVH.DataAccess.csproj" />
     <ProjectReference Include="..\ServerSVH.DocRecordDataAccess\ServerSVH.DocRecordDataAccess.csproj" />
+    <ProjectReference Include="..\ServerSVH.SendReceiv\ServerSVH.SendReceiv.csproj" />
   </ItemGroup>
 
 </Project>

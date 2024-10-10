@@ -7,8 +7,9 @@ namespace ServerSVH.Workflow.Actions
     {
         public override Uri ResolveUri(Uri baseUri, string relativeUri)
         {
-            if (relativeUri == "NSI//TranspNSIXml.xml")
+            if (relativeUri.Contains("NSI//TranspNSIXml.xml"))
                 return new Uri(baseUri, "..//..//Workflow//NSI//TranspNSIXml.xml");
+
             Uri Result = base.ResolveUri(baseUri, relativeUri);
             return Result;
         }
@@ -25,7 +26,7 @@ namespace ServerSVH.Workflow.Actions
 
         public XslCompiledTransform Load(string name)
         {
-            if (!transforms.TryGetValue(name, out XslCompiledTransform? transform))
+            if (!transforms.TryGetValue(name, out XslCompiledTransform transform))
             {
                 XsltSettings settings = new(true, true);
                 transform = new XslCompiledTransform();

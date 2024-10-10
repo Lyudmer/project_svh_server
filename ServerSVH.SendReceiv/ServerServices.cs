@@ -7,16 +7,14 @@ using ServerSVH.SendReceiv.Consumer;
 using ServerSVH.SendReceiv.Producer;
 using System.Xml.Linq;
 using ServerSVH.Application.Common;
-using System.Security.Cryptography;
 using MongoDB.Driver;
-using System.Reflection.Metadata;
-using Document = ServerSVH.Core.Models.Document;
-using MongoDB.Driver.Core.Operations;
 using System.Text;
 using System.Xml.Xsl;
 using System.Xml;
 using System.Xml.XPath;
-using System.Collections.Generic;
+using Document = ServerSVH.Core.Models.Document;
+using System.Security.Cryptography;
+
 
 namespace ServerSVH.SendReceiv
 {
@@ -41,12 +39,13 @@ namespace ServerSVH.SendReceiv
             {
                 // получить сообщение с пакетом
                 var resMessEmul = _rabbitMQConsumer.LoadMessage("EmulSendDoc");
-                var resMess = _rabbitMQConsumer.LoadMessage("SendPkg");
+                var resMess = _rabbitMQConsumer.LoadMessage("SendPkg"); 
+                ResLoadPackage resPkg = new();
+                XDocument xPkg = new();
                 // создать пакет и запустить workflow
-                if (resMess != null || resMessEmul!=null)
+                if (resMess != null || resMessEmul != null)
                 {
-                    ResLoadPackage resPkg= new();
-                    XDocument xPkg= new();
+                   
                     if (resMess != null)
                     {
                         resPkg = await PaskageFromMessage(resMess);
@@ -69,8 +68,8 @@ namespace ServerSVH.SendReceiv
                             //отправить собщение клиенту
                             _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
                             //запуск workflow
-                            _runWorkflow.RunBuilderXml(xPkg,ref resPkg);
-                            
+                            _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
+
                             if (stPkg == 3) goto case 3;
                             if (stPkg == 4) goto case 4;
                             break;
@@ -102,7 +101,8 @@ namespace ServerSVH.SendReceiv
                                         _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
                                         goto case 208;
                                     }
-                                    else {
+                                    else
+                                    {
                                         resPkg.Status = 4;
                                         resPkg.Message = "error archive-doc";
                                         goto case 4;
@@ -121,14 +121,14 @@ namespace ServerSVH.SendReceiv
                             {
                                 xPkg = await CreatePaskageAddAcrhXml(resPkg.Pid);
                                 _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
-                                if (resPkg.Status==217) goto case 217;
+                                if (resPkg.Status == 217) goto case 217;
                             };
-                         break;
+                            break;
                         case 217:
                             _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
                             _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
                             if (resPkg.Status == 210) goto case 210;
-                           
+
                             break;
                         case 210:
                             resXml = await CreatePkgForEmul(resPkg, "armti.cfg.xml");
@@ -155,7 +155,12 @@ namespace ServerSVH.SendReceiv
                             break;
                     }
                 }
-
+                var resMessDel = _rabbitMQConsumer.LoadMessage("DelPkg");
+                if (resMessDel != null)
+                {
+                    resPkg = await PaskageFromMessageDel(resMessDel);
+                    _messagePublisher.SendMessage(CreateResultXml(resPkg), "DeletedPkg");
+                }
             }
             catch (Exception)
             {
@@ -164,7 +169,56 @@ namespace ServerSVH.SendReceiv
             }
             return stPkg;
         }
-       
+        private async Task<ResLoadPackage> PaskageFromMessageDel(string Mess)
+        {
+            ResLoadPackage resPkg = new();
+            try
+            {
+                XDocument xMess = XDocument.Load(Mess);
+
+                var xPkg = xMess.Element("Package")?.Elements("*");
+                if (xPkg is not null)
+                {
+                    
+                    var attPkg = xMess.Elements("Package")?.Attributes("pid").ToString();
+
+                    if (attPkg is null || !int.TryParse(attPkg, out int Pid))
+                    {
+                        resPkg.Pid = -1;
+                        resPkg.Status = 107;
+                        resPkg.Message="Not found pkg on server" ;
+
+                        return resPkg;
+                    }  
+                    var propsPkg = xMess.Elements("Package")?.Elements("package-properties");
+                    var uuidPkg = ConverterValue.ConvertTo<Guid>(propsPkg?.Elements("name").Where(s => s.Attribute("uuid")?.Value is not null).ToString());
+                    var servPkg=_pkgRepository.GetByUUID(uuidPkg).Result;
+                    if (servPkg is not null) 
+                    {
+                        var Docs = await _docRepository.GetByFilter(servPkg.Pid);
+                        int cDocs = Docs.ToList().Count;
+                        foreach (var Doc in Docs)
+                        {
+                            var dRecord = await _docRecordRepository.GetByDocId(Doc.DocId);
+                            if (dRecord != null)
+                                    await _docRecordRepository.DeleteId(dRecord.Id);
+                                await _docRepository.Delete(Doc.Id);
+                            cDocs--;
+                        }
+                        if (cDocs == 0)
+                            await _pkgRepository.Delete(servPkg.Pid);
+                        resPkg.Pid = Pid;
+                        resPkg.UUID = uuidPkg;
+                        resPkg.Status = 107;
+                        resPkg.Message = "Delete pkg on server";
+                    }
+
+                }
+            } 
+            catch 
+            { }
+            return resPkg;
+        }
         private async Task <List<XDocument>> CreatePkgForEmul(ResLoadPackage resPkg,string docType)
         {
             List<XDocument> resXml = [];
@@ -304,7 +358,7 @@ namespace ServerSVH.SendReceiv
                     resPkg.Status = stPkg;
                     resPkg.Message="Pkg";
                     var Docs = await _docRepository.GetByFilter(Pid);
-                    int countDoc= Docs.Count();
+                    int countDoc= Docs.Count;
                     foreach (var doc in xDocs)
                     {
                         var gDoc = SaveDocToPkg(doc.docid, string.Empty, doc.doctext, Pid);
@@ -399,10 +453,10 @@ namespace ServerSVH.SendReceiv
                     if (xMess.Elements("ArchResult") is not null)
                     {
                         var ListDoc = await _docRepository.GetListByDocType(pid_1, "archive-doc.cfg.xml");
-                        if (ListDoc != null) { CountSendDoc = ListDoc.Count(); };
+                        if (ListDoc != null) { CountSendDoc = ListDoc.Count; };
 
                         var ListDocRes = await _docRepository.GetListByDocType(pid_1, "archive-rtu-doc-result.cfg.xml");
-                        if (ListDocRes != null) { CountResult = ListDocRes.Count(); };
+                        if (ListDocRes != null) { CountResult = ListDocRes.Count; };
                         resPkg.UUID = uuidPkg;
                         resPkg.Pid = pid_1;
                         resPkg.Status = 208;
@@ -549,6 +603,22 @@ namespace ServerSVH.SendReceiv
                 resXml.Add(resultStr.ToString());
             }
             return resXml;
+        }
+        public async Task<List<Package>> GetPackageList()
+        {
+            return await _pkgRepository.GetAll();
+        }
+        public async Task<List<Document>> GetDocumentList(int Pid)
+        {
+            return await _docRepository.GetByFilter(Pid);
+        }  
+        public async Task<Document> GetDocument(int Id)
+        {
+            return await _docRepository.GetById(Id);
+        }
+        public async Task<DocRecord> GetRecord(Guid DocId)
+        {
+            return await _docRecordRepository.GetByDocId(DocId);
         }
     }
    }

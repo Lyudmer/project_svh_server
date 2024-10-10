@@ -14,7 +14,7 @@ namespace ServerSVH.Workflow.Actions
         {
             return "..\\Workflow\\";
         }
-        public static Type? FindActionHandlerType(string actionName)
+        public static Type FindActionHandlerType(string actionName)
         {
             var handlerType = Type.GetType(HandlerNamespace + "." + actionName + "Handler", false, true);
             return handlerType != null && typeof(ActionHandlerBase).IsAssignableFrom(handlerType) ? handlerType : null;
@@ -42,7 +42,7 @@ namespace ServerSVH.Workflow.Actions
 
       
         private static bool _validationResult;
-        private static string? _validationResultInfo;
+        private static string _validationResultInfo;
 
         public static string ValidateSchema(XmlSchemaSet schemaSet, XElement node)
         {
@@ -69,7 +69,7 @@ namespace ServerSVH.Workflow.Actions
             return "Ok";
         }
 
-        public static void ValidationHandler(object? sender, ValidationEventArgs args)
+        public static void ValidationHandler(object sender, ValidationEventArgs args)
         {
             _validationResult = false;
             _validationResultInfo += String.Format("***Validation error\n");

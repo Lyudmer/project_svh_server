@@ -16,19 +16,7 @@ namespace ServerSVH.DataAccess.Repositories
 
         public async Task<Document> Add(Document Doc)
         {
-            var docEntity = new DocumentEntity
-            {
-                Pid = Doc.Pid,
-                Id = Doc.Id,
-                DocId = Doc.DocId,
-                SizeDoc = Doc.SizeDoc,
-                Idmd5 = Doc.Idmd5,
-                IdSha256 = Doc.IdSha256,
-                CreateDate = Doc.CreateDate,
-                ModifyDate = Doc.ModifyDate
-            };
-
-            await _dbContext.AddAsync(docEntity);
+            await _dbContext.AddAsync(Doc);
             await _dbContext.SaveChangesAsync();
 
             return Doc;
