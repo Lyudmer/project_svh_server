@@ -13,7 +13,7 @@ using System.Xml.Xsl;
 using System.Xml;
 using System.Xml.XPath;
 using Document = ServerSVH.Core.Models.Document;
-using System.Security.Cryptography;
+
 
 
 namespace ServerSVH.SendReceiv
@@ -61,12 +61,12 @@ namespace ServerSVH.SendReceiv
                         case -1:
                         case 4:
                             //отправить ошибку клиенту
-                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg).ToString(), "StatusPkg");
                             break;
                         case 1:
                             await _pkgRepository.UpdateStatus(resPkg.Pid, resPkg.Status);
                             //отправить собщение клиенту
-                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg).ToString(), "StatusPkg");
                             //запуск workflow
                             _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
 
@@ -74,7 +74,7 @@ namespace ServerSVH.SendReceiv
                             if (stPkg == 4) goto case 4;
                             break;
                         case 3:
-                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg).ToString(), "StatusPkg");
                             _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
 
                             if (stPkg == 5) goto case 5;
@@ -82,23 +82,23 @@ namespace ServerSVH.SendReceiv
 
                             break;
                         case 5:
-                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg).ToString(), "StatusPkg");
                             try
                             {
                                 resXml = await CreatePkgForEmul(resPkg, "archive-doc.cfg.xml");
                                 if (resXml != null)
                                 {
-                                    CountDoc = resXml.Count();
+                                    CountDoc = resXml.Count;
                                     foreach (XDocument xDoc in resXml)
                                     {
-                                        _messagePublisher.SendMessage(xDoc.ToString(), "SendEmulPkg");
+                                        _messagePublisher.SendMessage(xDoc.ToString(), "SendEmulArch");
                                         CountDoc--;
                                     }
                                     if (CountDoc == 0)
                                     {
                                         resPkg.Status = 208;
                                         await _pkgRepository.UpdateStatus(resPkg.Pid, resPkg.Status);
-                                        _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                                        _messagePublisher.SendMessage(CreateResultXml(resPkg).ToString(), "StatusPkg");
                                         goto case 208;
                                     }
                                     else
@@ -125,7 +125,7 @@ namespace ServerSVH.SendReceiv
                             };
                             break;
                         case 217:
-                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg).ToString(), "StatusPkg");
                             _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
                             if (resPkg.Status == 210) goto case 210;
 
@@ -134,9 +134,13 @@ namespace ServerSVH.SendReceiv
                             resXml = await CreatePkgForEmul(resPkg, "armti.cfg.xml");
                             if (resXml != null)
                             {
-                                _messagePublisher.SendMessage(resXml.ToString(), "SendEmulPkg");
+                                CountDoc = resXml.Count;
+                                foreach (XDocument xDoc in resXml)
+                                {
+                                    _messagePublisher.SendMessage(xDoc.ToString(), "SendEmulArmti");
+                                }
                                 await _pkgRepository.UpdateStatus(resPkg.Pid, resPkg.Status);
-                                _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                                _messagePublisher.SendMessage(CreateResultXml(resPkg).ToString(), "StatusPkg");
                             }
                             else
                             {
@@ -146,9 +150,9 @@ namespace ServerSVH.SendReceiv
                             }
                             break;
                         case 214:
-                            _messagePublisher.SendMessage(CreateResultXml(resPkg), "StatusPkg");
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg).ToString(), "StatusPkg");
                             _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
-                            _messagePublisher.SendMessage(CreateResultXml(resPkg, "ConfirmWHDocReg.cfg.xml"), "DocResultPkg");
+                            _messagePublisher.SendMessage(CreateResultXml(resPkg, "ConfirmWHDocReg.cfg.xml").ToString(), "DocResultPkg");
                             break;
                         default:
                             // ждем смены статуса
@@ -159,7 +163,7 @@ namespace ServerSVH.SendReceiv
                 if (resMessDel != null)
                 {
                     resPkg = await PaskageFromMessageDel(resMessDel);
-                    _messagePublisher.SendMessage(CreateResultXml(resPkg), "DeletedPkg");
+                    _messagePublisher.SendMessage(CreateResultXml(resPkg).ToString(), "DeletedPkg");
                 }
             }
             catch (Exception)
@@ -233,6 +237,7 @@ namespace ServerSVH.SendReceiv
                         if (dRecord != null)
                         {
                             XDocument xDoc = XDocument.Load(dRecord.DocText);
+                          
                             resXml.Add(xDoc);
                         }
                     }
@@ -250,8 +255,8 @@ namespace ServerSVH.SendReceiv
             var elem = new XElement("Package");
             elem.SetAttributeValue("pid", Pid);
             var elem_props = new XElement("package-properties"
-                , new XElement("props", new XAttribute("name", "uuid"), _pkgRepository.GetById(Pid).Result.UUID.ToString())
-                , new XElement("props", new XAttribute("name", "UserId"), _pkgRepository.GetById(Pid).Result.UserId.ToString()));
+                , new XElement("props", new XAttribute("name", "uuid"), _pkgRepository.GetById(Pid).Result.UUID.ToString()));
+                
             elem.Add(elem_props);
             var docs = await _docRepository.GetByFilter(Pid);
             foreach (var docId in docs.AsParallel().Select(d => d.DocId).ToList())
@@ -259,7 +264,6 @@ namespace ServerSVH.SendReceiv
                 {
                     elem.SetAttributeValue("docid", doc.DocId.ToString());
                     elem.SetAttributeValue("doctype", doc.DocType);
-                    elem.SetAttributeValue("createdate", doc.CreateDate);
                     elem.Add(_docRecordRepository.GetByDocId(doc.DocId).ToString());
                 }
             xPkg.Add(elem);

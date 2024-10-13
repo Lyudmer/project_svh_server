@@ -30,6 +30,7 @@
     <ProjectReference Include="..\ServerSVH.DataAccess\ServerSVH.DataAccess.csproj" />
     <ProjectReference Include="..\ServerSVH.DocRecordDataAccess\ServerSVH.DocRecordDataAccess.csproj" />
     <ProjectReference Include="..\ServerSVH.SendReceiv\ServerSVH.SendReceiv.csproj" />
+    <ProjectReference Include="..\ServerSVH.Workflow\ServerSVH.Workflow.csproj" />
   </ItemGroup>
 
 </Project>

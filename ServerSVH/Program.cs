@@ -12,6 +12,7 @@ using ServerSVH.SendReceiv;
 using ServerSVH.SendReceiv.Consumer;
 using ServerSVH.SendReceiv.Producer;
 using ServerSVH.SendReceiv.Settings;
+using ServerSVH.Workflow;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
@@ -28,7 +29,7 @@ services.AddSwaggerGen();
 var connectionString = builder.Configuration.GetConnectionString("PostgresConnection");
 services.AddDbContext<ServerSVHDbContext>(options => { options.UseNpgsql(connectionString); });
 
-services.AddTransient<IServerServices, ServerServices>();
+
 
 services.Configure<DocRecordDBSettings>(configuration.GetSection("MongoDBSettings"));
 
@@ -39,14 +40,17 @@ services.AddTransient<IMongoClient>(_ =>
     return new MongoClient(connectionString);
 });
 
+services.AddTransient<IServerServices, ServerServices>();
+
 services.AddTransient<IPackagesRepository, PackagesRepository>();
 services.AddTransient<IDocumentsRepository, DocumentsRepository>();
 services.AddTransient<IDocRecordRepository, DocRecordRepository>();
 services.AddTransient<IStatusGraphRepository, StatusGraphRepository>();
 
+services.AddTransient<IRabbitMQBase, RabbitMQBase>();
 services.AddScoped<IMessagePublisher, RabbitMQProducer>();
 services.AddScoped<IRabbitMQConsumer, RabbitMQConsumer>();
-
+services.AddScoped<IRunWorkflow,RunWorkflow>();
 services.AddAutoMapper(typeof(ServerServices).Assembly);
 
 services.AddHttpContextAccessor();
