@@ -18,7 +18,6 @@ namespace ServerSVH.Workflow.Actions
         public override Uri ResolveUri(Uri baseUri, string relativeUri)
         {
             string Path = System.IO.Path.GetFullPath(System.IO.Path.Combine(_basePath, relativeUri));
-
             return new Uri(Path);
         }
     }

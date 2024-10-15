@@ -4,14 +4,14 @@
     {
         private Package(int pid, Guid userId, int statusId, Guid uuId, DateTime createDate, DateTime modifyDate)
         {
-            Pid = pid;
+            Id = pid;
             UserId = userId;
             StatusId = statusId;
             UUID = uuId;
             CreateDate = createDate;
             ModifyDate = modifyDate;
         }
-        public int Pid { get; set; }
+        public int Id { get; set; }
         public Guid UserId { get; set; }
         public int StatusId { get; set; }
 

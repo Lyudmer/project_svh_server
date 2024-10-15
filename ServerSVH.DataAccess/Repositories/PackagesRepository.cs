@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ServerSVH.Core.Abstraction.Repositories;
 using ServerSVH.Core.Models;
+using ServerSVH.DataAccess.Entities;
 
 namespace ServerSVH.DataAccess.Repositories
 {
@@ -12,24 +13,24 @@ namespace ServerSVH.DataAccess.Repositories
 
         public async Task<Package> Add(Package Pkg)
         {
-            await _dbContext.AddAsync(Pkg);
+            var PkgEntity = _mapper.Map<PackageEntity>(Pkg);
+            await _dbContext.AddAsync(PkgEntity);
             await _dbContext.SaveChangesAsync();
-            return Pkg;
+            return _mapper.Map<Package>(PkgEntity);
+        }
+        public async Task<Package> GetByUUId(Guid uuid)
+        {
+            var pkgEntity = await _dbContext.Packages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.UUID == uuid) ?? throw new Exception();
+            return _mapper.Map<Package>(pkgEntity);
+
         }
         public async Task<Package> GetById(int Pid)
         {
             var pkgEntity = await _dbContext.Packages
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == Pid) ?? throw new Exception();
-
-            return _mapper.Map<Package>(pkgEntity);
-
-        }
-        public async Task<Package> GetByUUID(Guid Uuid)
-        {
-            var pkgEntity = await _dbContext.Packages
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.UUID== Uuid) ?? throw new Exception();
 
             return _mapper.Map<Package>(pkgEntity);
 
@@ -84,12 +85,14 @@ namespace ServerSVH.DataAccess.Repositories
             return _mapper.Map<List<Package>>(pkgList);
 
         }
-        public async Task UpdateStatus(int Pid, int statusId)
+        public async Task<int> UpdateStatus(int Pid, int statusId)
         {
-            await _dbContext.Packages
-                .Where(p => p.Id == Pid)
-                .ExecuteUpdateAsync(s => s.SetProperty(p => p.StatusId, statusId)
-                                          .SetProperty(p => p.ModifyDate, DateTime.Now));
+           var resId= await _dbContext.Packages
+                            .Where(p => p.Id == Pid)
+                            .ExecuteUpdateAsync(s => s.SetProperty(p => p.StatusId, statusId)
+                                                      .SetProperty(p => p.ModifyDate, DateTime.Now));
+            if (resId == 0) return 0;
+            else return Pid;
         }
         public async Task Delete(int Pid)
         {
@@ -99,8 +102,10 @@ namespace ServerSVH.DataAccess.Repositories
         }
         public async Task<int> GetLastPkgId()
         {
-            return await _dbContext.Packages.MaxAsync(p => p.Id);
+            var cPkg = await _dbContext.Packages.CountAsync();
+
+            return cPkg;
         }
-        
+
     }
 }

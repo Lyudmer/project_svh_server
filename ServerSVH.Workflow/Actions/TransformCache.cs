@@ -7,9 +7,8 @@ namespace ServerSVH.Workflow.Actions
     {
         public override Uri ResolveUri(Uri baseUri, string relativeUri)
         {
-            if (relativeUri.Contains("NSI//TranspNSIXml.xml"))
+            if (relativeUri == "NSI//TranspNSIXml.xml")
                 return new Uri(baseUri, "..//..//Workflow//NSI//TranspNSIXml.xml");
-
             Uri Result = base.ResolveUri(baseUri, relativeUri);
             return Result;
         }

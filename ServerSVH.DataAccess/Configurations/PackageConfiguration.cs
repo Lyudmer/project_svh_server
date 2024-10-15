@@ -28,7 +28,6 @@ namespace ServerSVH.DataAccess.Configurations
                    .HasColumnType("bigint");
             builder.Property(p => p.UUID)
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasColumnName("uuid")
                         .HasColumnType("uuid");
 

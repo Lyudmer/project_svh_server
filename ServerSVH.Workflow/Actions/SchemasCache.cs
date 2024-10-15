@@ -16,29 +16,21 @@ namespace ServerSVH.Workflow.Actions
 
         public XmlSchemaSet Get(string SchemaName)
         {
-            
-            string key = SchemaName.ToUpper();
+            String key = SchemaName.ToUpper();
             if (!_loadedSchemasSet.TryGetValue(key, out XmlSchemaSet value))
             {
                 XmlSchemaSet newSchemasSet = new();
                 var pathScheme = Path.GetDirectoryName(SchemaName);
-                if (pathScheme != null)
-                {
-                    XmlResolver resolver = new WorkflowXmlUrlResolver(pathScheme);
-                    newSchemasSet.XmlResolver = resolver;
-                    var readSchema = new FileStream(SchemaName, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    if (readSchema != null)
-                    {
-                        XmlSchema schema = XmlSchema.Read(readSchema, null);
-                        if (schema != null)
-                        {
-                            newSchemasSet.Add(schema);
-                            newSchemasSet.Compile();
-                            value = newSchemasSet;
-                            _loadedSchemasSet.Add(key, value);
-                        }
-                    }
-                }
+        
+                XmlResolver resolver = new WorkflowXmlUrlResolver(pathScheme);
+                newSchemasSet.XmlResolver = resolver;
+                var readSchema = new FileStream(SchemaName, FileMode.Open, FileAccess.Read, FileShare.Read);
+        
+                XmlSchema schema = XmlSchema.Read(readSchema, null);
+                newSchemasSet.Add(schema);
+                newSchemasSet.Compile();
+                value = newSchemasSet;
+                _loadedSchemasSet.Add(key, value);
             }
             return value;
         }
@@ -61,13 +53,9 @@ namespace ServerSVH.Workflow.Actions
             foreach (string file in files)
             {
                 using FileStream stream = new(file, FileMode.Open, FileAccess.Read, FileShare.Read);
-                if (stream != null)
-                {
-                    XmlSchema schema = XmlSchema.Read(stream, null);
-                    if (schema != null && schema.TargetNamespace !=null)
-                        _targetNSFile.TryAdd(schema.TargetNamespace, file);
-                    stream.Close();
-                }
+                XmlSchema schema = XmlSchema.Read(stream, null);
+                _targetNSFile.TryAdd(schema.TargetNamespace, file);
+                stream.Close();
             }
         }
     }

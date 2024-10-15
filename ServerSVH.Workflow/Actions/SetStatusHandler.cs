@@ -10,9 +10,9 @@ using System.Xml.Linq;
 
 namespace ServerSVH.Workflow.Actions
 {
-    public class SetStatusHandler(IServerServices serverServices) : ActionHandlerBase
+    public class SetStatusHandler(IServerFunction serverFunction) : ActionHandlerBase
     {
-        private readonly IServerServices _serverServices = serverServices;
+        private readonly IServerFunction _serverFunction = serverFunction;
         protected override void ExecuteCore(ref ResLoadPackage resPkg)
         {
             IsSuccess = ValidateSetStatusPkg(ActionNode, ref resPkg);
@@ -20,7 +20,7 @@ namespace ServerSVH.Workflow.Actions
         private bool ValidateSetStatusPkg(XElement node, ref ResLoadPackage resPkg)
         {
             var stPkg = ConverterValue.ConvertTo<int>(node.Attribute("name")?.Value);
-            if (_serverServices.UpdateStatusPkg(resPkg.Pid, resPkg.Status).Result)
+            if (_serverFunction.UpdateStatusPkg(resPkg.Pid, resPkg.Status).Result)
             {
                 resPkg.Status = stPkg;
                 resPkg.Message = "Set status package " + stPkg;

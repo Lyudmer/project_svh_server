@@ -1,14 +1,13 @@
 ﻿
 using ServerSVH.Application.Common;
 using ServerSVH.Application.Interface;
-using System.Security.Cryptography;
 using System.Xml.Linq;
 
 namespace ServerSVH.Workflow.Actions
 {
-    public class SaveHandler(IServerServices serverServices) : ActionHandlerBase
+    public class SaveHandler(IServerFunction serverFunction) : ActionHandlerBase
     {
-        private readonly IServerServices _serverServices=serverServices;
+        private readonly IServerFunction _serverFunction=serverFunction;
         protected override void ExecuteCore(ref ResLoadPackage resPkg)
         {
             IsSuccess = ValidateSaveDocToPkg(ActionNode,CurrentDocument,ref resPkg);
@@ -18,7 +17,7 @@ namespace ServerSVH.Workflow.Actions
             var docName = node.Attribute("name")?.Value;
             if (string.IsNullOrEmpty(docName)) return false;
             if(resPkg is null) return false;
-            Guid resDoc =  _serverServices.SaveDocToPkg(Guid.Empty,docName, currentDocument.ToString(), resPkg.Pid).Result;
+            Guid resDoc =  _serverFunction.SaveDocToPkg(Guid.Empty,docName, currentDocument.ToString(), resPkg.Pid).Result;
             if (resDoc == Guid.Empty)
             {
                 resPkg.Status = 4;

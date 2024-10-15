@@ -1,7 +1,7 @@
 ﻿
 
 using ServerSVH.Core.Models;
-using ServerSVH.DocRecordCore.Models;
+
 
 namespace ServerSVH.Core.Abstraction.Repositories
 {

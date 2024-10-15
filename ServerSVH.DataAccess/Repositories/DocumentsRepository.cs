@@ -16,10 +16,11 @@ namespace ServerSVH.DataAccess.Repositories
 
         public async Task<Document> Add(Document Doc)
         {
+            var docEntity = _mapper.Map<DocumentEntity>(Doc);
             await _dbContext.AddAsync(Doc);
             await _dbContext.SaveChangesAsync();
+            return _mapper.Map<Document>(docEntity);
 
-            return Doc;
         }
         public async Task<Document> GetById(int id)
         {

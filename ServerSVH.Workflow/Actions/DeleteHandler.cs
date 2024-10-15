@@ -9,9 +9,9 @@ using System.Xml.Linq;
 
 namespace ServerSVH.Workflow.Actions
 {
-    public class DeleteHandler(IServerServices serverServices) : ActionHandlerBase
+    public class DeleteHandler(IServerFunction serverFunction) : ActionHandlerBase
     {
-        private readonly IServerServices _serverServices = serverServices;
+        private readonly IServerFunction _serverFunction = serverFunction;
         protected override void ExecuteCore(ref ResLoadPackage resPkg)
         {
             IsSuccess = ValidateDeleteFromPkg(ActionNode, CurrentDocument, ref resPkg);
@@ -21,7 +21,7 @@ namespace ServerSVH.Workflow.Actions
             var docName = node.Attribute("name")?.Value;
             if (string.IsNullOrEmpty(docName)) return false;
             if (resPkg is null) return false;
-            return _serverServices.DeleteFromPkg(docName,  resPkg.Pid).Result;
+            return _serverFunction.DeleteFromPkg(docName,  resPkg.Pid).Result;
             
         }
         public override void Init(ActionHandlerBase parentAction, XElement actionNode, XElement currentDocument,ref ResLoadPackage resPkg)

@@ -1,10 +1,11 @@
-using Microsoft.AspNetCore.Identity;
+
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+
 using MongoDB.Driver;
 using ServerSVH.Application.Interface;
 using ServerSVH.Core.Abstraction.Repositories;
 using ServerSVH.DataAccess;
+using ServerSVH.DataAccess.Mapping;
 using ServerSVH.DataAccess.Repositories;
 using ServerSVH.DocRecordCore.Abstraction;
 using ServerSVH.DocRecordDataAccess;
@@ -26,34 +27,38 @@ services.AddSwaggerGen();
 
 
 //postgresql db
-var connectionString = builder.Configuration.GetConnectionString("PostgresConnection");
-services.AddDbContext<ServerSVHDbContext>(options => { options.UseNpgsql(connectionString); });
 
+services.AddDbContext<ServerSVHDbContext>(options => 
+{ 
+    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")); 
+});
 
+services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-services.Configure<DocRecordDBSettings>(configuration.GetSection("MongoDBSettings"));
+//mongodb
+services.Configure<Settings>(configuration.GetSection("MongoConnection"));
+
 
 services.AddTransient<IMongoClient>(_ =>
 {
-    var connectionString = configuration.GetSection("MongoDBSettings:MongoDBConnectionString")?.Value;
+    var connectionString = configuration.GetSection("MongoConnection:ConnectionString")?.Value;
 
     return new MongoClient(connectionString);
 });
-
-services.AddTransient<IServerServices, ServerServices>();
 
 services.AddTransient<IPackagesRepository, PackagesRepository>();
 services.AddTransient<IDocumentsRepository, DocumentsRepository>();
 services.AddTransient<IDocRecordRepository, DocRecordRepository>();
 services.AddTransient<IStatusGraphRepository, StatusGraphRepository>();
-
+services.AddTransient<IRunWorkflow, RunWorkflow>();
 services.AddTransient<IRabbitMQBase, RabbitMQBase>();
-services.AddScoped<IMessagePublisher, RabbitMQProducer>();
-services.AddScoped<IRabbitMQConsumer, RabbitMQConsumer>();
-services.AddScoped<IRunWorkflow,RunWorkflow>();
-services.AddAutoMapper(typeof(ServerServices).Assembly);
+services.AddTransient<IMessagePublisher, RabbitMQProducer>();
+services.AddTransient<IRabbitMQConsumer, RabbitMQConsumer>();
 
-services.AddHttpContextAccessor();
+services.AddTransient<IServerFunction, ServerFunction>();
+services.AddTransient<IServerServices, ServerServices>();
+builder.Services.AddAutoMapper(typeof(MapperProfile));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

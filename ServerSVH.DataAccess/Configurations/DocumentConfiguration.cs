@@ -24,7 +24,6 @@ namespace ServerSVH.DataAccess.Configurations
 
             builder.Property(d => d.DocId)
                    .IsRequired()
-                   .ValueGeneratedOnAdd()
                    .HasColumnName("docid")
                    .HasColumnType("uuid");
             builder.Property(d => d.Pid)

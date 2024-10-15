@@ -8,13 +8,13 @@ namespace ServerSVH.Core.Abstraction.Repositories
         Task Delete(int Pid);
         Task<List<Package>> GetAll();
         Task<Package> GetById(int Pid);
-        Task<Package> GetByUUID(Guid Uuid);
+        Task<Package> GetByUUId(Guid uuid);
         Task<List<Package>> GetByPage(int Page, int Page_Size);
         Task<int> GetLastPkgId();
    
         Task<Package> GetPkgByGuid(Guid UserId, Guid UUID);
         Task<List<Package>> GetPkgUser(Guid UserId);
         Task<Package> GetPkgWithDoc(int Pid);
-        Task UpdateStatus(int Pid, int statusId);
+        Task <int>UpdateStatus(int Pid, int statusId);
     }
 }
