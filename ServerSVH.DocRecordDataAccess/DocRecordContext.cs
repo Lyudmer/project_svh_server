@@ -21,6 +21,18 @@ namespace ServerSVH.DocRecordDataAccess
         {
             get
             {
+                return GeDocRecord();
+            }
+        }
+
+        private IMongoCollection<DocRecord> GeDocRecord()
+        {
+            var collection = _database.GetCollection<DocRecord>("DocRecord");
+            if (collection != null)
+                return collection;
+            else
+            {
+                _database.CreateCollection("DocRecord");
                 return _database.GetCollection<DocRecord>("DocRecord");
             }
         }

@@ -11,11 +11,12 @@ namespace ServerSVH.DataAccess.Repositories
     {
         private readonly ServerSVHDbContext _dbContext = dbContext;
         private readonly IMapper _mapper = mapper;
-        public async Task Add(StatusGraph statusGraph)
+        public async Task<StatusGraph> Add(StatusGraph statusGraph)
         {
             var stGrEntity = _mapper.Map<StatusGraphEntity>(statusGraph);
-            await _dbContext.AddAsync(stGrEntity);
+            var resStGr = await _dbContext.AddAsync(stGrEntity);
             await _dbContext.SaveChangesAsync();
+            return _mapper.Map<StatusGraph>(resStGr.Entity);
         }
         public async Task Delete(StatusGraph statusGraph)
         {

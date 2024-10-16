@@ -7,12 +7,9 @@ namespace ServerSVH.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ServerController(IServerServices srvService) : ControllerBase
+    public class ServerController( IServerFunction serverFunction) : ControllerBase
     {
-        
-        
-        private readonly IServerServices _srvService = srvService;
-
+        private readonly IServerFunction _serverFunction = serverFunction;
     
         [HttpPost("GetPackage")]
         public async Task<IActionResult> GetPkgAll(PackageResponse pkgSend)
@@ -20,7 +17,7 @@ namespace ServerSVH.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _srvService.GetPackageList();
+            var result = await _serverFunction.GetPackageList();
 
             return Ok(result);
         }
@@ -30,7 +27,7 @@ namespace ServerSVH.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _srvService.GetDocumentList(docSend.Pid);
+            var result = await _serverFunction.GetDocumentList(docSend.Pid);
 
             return Ok(result);
         }
@@ -39,8 +36,8 @@ namespace ServerSVH.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var Doc = await _srvService.GetDocument(docSend.Id);
-            var result = await _srvService.GetRecord(Doc.DocId);
+            var Doc = await _serverFunction.GetDocument(docSend.Id);
+            var result = await _serverFunction.GetRecord(Doc.DocId);
 
             return Ok(result);
         }

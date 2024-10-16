@@ -25,7 +25,7 @@ namespace ServerSVH.Application.Common
         public static string GetHashMd5(string text)
         {
             string result = string.Empty;
-            if (string.IsNullOrEmpty(text))
+            if (!string.IsNullOrEmpty(text))
             {
                 var md5 = MD5.Create();
                 var hash = md5?.ComputeHash(Encoding.UTF8.GetBytes(text));

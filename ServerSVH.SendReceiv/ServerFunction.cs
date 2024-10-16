@@ -4,6 +4,7 @@ using ServerSVH.Core.Abstraction.Repositories;
 using ServerSVH.Core.Models;
 using ServerSVH.DocRecordCore.Abstraction;
 using ServerSVH.DocRecordCore.Models;
+using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -28,11 +29,11 @@ namespace ServerSVH.SendReceiv
             {
                 XDocument xMess = XDocument.Load(Mess);
 
-                var xPkg = xMess.Element("Package")?.Elements("*");
+                var xPkg = xMess.Element("Package");
                 if (xPkg is not null)
                 {
 
-                    var attPkg = xMess.Elements("Package")?.Attributes("pid").ToString();
+                    var attPkg = xPkg.Attributes("pid").ToString();
 
                     if (attPkg is null || !int.TryParse(attPkg, out int Pid))
                     {
@@ -42,7 +43,7 @@ namespace ServerSVH.SendReceiv
 
                         return resPkg;
                     }
-                    var propsPkg = xMess.Elements("Package")?.Elements("package-properties");
+                    var propsPkg = xPkg.Elements("package-properties");
                     var uuidPkg = ConverterValue.ConvertTo<Guid>(propsPkg?.Elements("name").Where(s => s.Attribute("uuid")?.Value is not null).ToString());
                     var servPkg = _pkgRepository.GetByUUId(uuidPkg).Result;
                     if (servPkg is not null)
@@ -53,7 +54,7 @@ namespace ServerSVH.SendReceiv
                         {
                             var dRecord = await _docRecordRepository.GetByDocId(Doc.DocId);
                             if (dRecord != null)
-                                await _docRecordRepository.DeleteId(dRecord.Id);
+                                await _docRecordRepository.DeleteId(dRecord.DocId);
                             await _docRepository.Delete(Doc.Id);
                             cDocs--;
                         }
@@ -76,19 +77,16 @@ namespace ServerSVH.SendReceiv
             List<XDocument> resXml = [];
             try
             {
-                var docs = await _docRepository.GetByFilter(resPkg.Pid);
-                foreach (var docId in docs.AsParallel().Where(d => d.DocType == docType)
-                                        .Select(d => d.DocId).ToList())
-                    foreach (var doc in docs)
+                var docs = await _docRepository.GetListByDocType(resPkg.Pid,docType);
+                foreach (var doc in docs)
+                {
+                    var dRecord = await _docRecordRepository.GetByDocId(doc.DocId);
+                    if (dRecord != null)
                     {
-                        var dRecord = await _docRecordRepository.GetByDocId(doc.DocId);
-                        if (dRecord != null)
-                        {
-                            XDocument xDoc = XDocument.Load(dRecord.DocText);
-
-                            resXml.Add(xDoc);
-                        }
+                        XDocument xDoc = XDocument.Load(dRecord.DocText);
+                        resXml.Add(xDoc);
                     }
+                }
             }
             catch (Exception)
             {
@@ -107,13 +105,17 @@ namespace ServerSVH.SendReceiv
 
             elem.Add(elem_props);
             var docs = await _docRepository.GetByFilter(Pid);
-            foreach (var docId in docs.AsParallel().Select(d => d.DocId).ToList())
-                foreach (var doc in docs)
+            foreach (var doc in docs)
+            {
+                var docRecord = _docRecordRepository.GetByDocId(doc.DocId).Result.DocText.ToString();
+                if (docRecord != null)
                 {
-                    elem.SetAttributeValue("docid", doc.DocId.ToString());
-                    elem.SetAttributeValue("doctype", doc.DocType);
-                    elem.Add(_docRecordRepository.GetByDocId(doc.DocId).ToString());
+                    XElement elem_doc = XElement.Parse(docRecord);
+                    elem_doc.SetAttributeValue("docid", doc.DocId.ToString());
+                    elem_doc.SetAttributeValue("doctype", doc.DocType);
+                    elem.Add(elem_doc);
                 }
+            }
             xPkg.Add(elem);
             return xPkg;
         }
@@ -159,7 +161,8 @@ namespace ServerSVH.SendReceiv
                 XDocument xMess = XDocument.Load(Mess);
 
                 var xPkg = xMess.Element("Package")?
-                           .Elements("*").Where(p => p.Attribute("docs")?.Value == "CfgName");
+                     .Elements().Where(p => p.Attributes().Where(a => a.Name.LocalName.Contains("CfgName")).FirstOrDefault()?.Value is not null);
+
                 if (xPkg is not null)
                 {
                     //create package
@@ -352,19 +355,17 @@ namespace ServerSVH.SendReceiv
                 await _docRepository.Update(Doc.DocId, Document.Create(Doc.Id, Doc.DocId, docName,
                                                 docRecord.Length, DopFunction.GetHashMd5(docRecord),
                                                 DopFunction.GetSha256(docRecord),
-                                                Pid, Doc.CreateDate, DateTime.Now));
+                                                Pid, Doc.CreateDate, DateTime.UtcNow));
 
                 var oldDocRec = await _docRecordRepository.GetByDocId(Doc.DocId);
                 if (oldDocRec != null)
                 {
-                    await _docRecordRepository.UpdateRecord(Doc.DocId, DocRecord.Create(oldDocRec.Id, Doc.DocId,
-                                                      docRecord, oldDocRec.CreateDate, DateTime.Now));
-                    dRecordId = oldDocRec.DocId;
+                    await _docRecordRepository.UpdateRecord(Doc.DocId, DocRecord.Create(Doc.DocId, docRecord));
+                    dRecordId = Doc.DocId;
                 }
                 else
                 {
-                    dRecordId = await _docRecordRepository.AddRecord(DocRecord.Create(Guid.NewGuid(),
-                                        Doc.DocId, docRecord, DateTime.Now, DateTime.Now));
+                    dRecordId = await _docRecordRepository.AddRecord(DocRecord.Create(Doc.DocId, docRecord));
                 }
             }
             else
@@ -372,12 +373,11 @@ namespace ServerSVH.SendReceiv
                 Doc = await _docRepository.Add(Document.Create(doc_1, Guid.NewGuid(), docName,
                                           docRecord.Length, DopFunction.GetHashMd5(docRecord),
                                           DopFunction.GetSha256(docRecord),
-                                          Pid, DateTime.Now, DateTime.Now));
+                                          Pid, DateTime.UtcNow, DateTime.UtcNow));
 
                 if (Doc is not null)
                 {
-                    dRecordId = await _docRecordRepository.AddRecord(DocRecord.Create(Guid.NewGuid(), Doc.DocId,
-                                                                  docRecord, DateTime.Now, DateTime.Now));
+                    dRecordId = await _docRecordRepository.AddRecord(DocRecord.Create(Doc.DocId,docRecord));
                 }
             }
 
@@ -399,8 +399,7 @@ namespace ServerSVH.SendReceiv
                                           Pid, DateTime.Now, DateTime.Now));
             if (Doc is not null)
             {
-                dRecordId = await _docRecordRepository.AddRecord(DocRecord.Create(Guid.NewGuid(), Doc.DocId,
-                                                           docRecord, DateTime.Now, DateTime.Now));
+                dRecordId = await _docRecordRepository.AddRecord(DocRecord.Create(Doc.DocId,docRecord));
             }
 
             if (dRecordId.ToString().Length > 0 && Doc is not null)
@@ -459,6 +458,10 @@ namespace ServerSVH.SendReceiv
         public async Task<List<Package>> GetPackageList()
         {
             return await _pkgRepository.GetAll();
+        }
+        public async Task<Package> GetPkgId(int Pid)
+        {
+            return await _pkgRepository.GetById(Pid);
         }
         public async Task<List<Document>> GetDocumentList(int Pid)
         {

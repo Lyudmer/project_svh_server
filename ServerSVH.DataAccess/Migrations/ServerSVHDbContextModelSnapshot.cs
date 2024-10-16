@@ -38,7 +38,6 @@ namespace ServerSVH.DataAccess.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("DocId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("docid");
 
@@ -48,14 +47,12 @@ namespace ServerSVH.DataAccess.Migrations
 
                     b.Property<string>("IdSha256")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("idsha256");
 
                     b.Property<string>("Idmd5")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("idmd5");
@@ -69,11 +66,8 @@ namespace ServerSVH.DataAccess.Migrations
                         .HasColumnName("pid");
 
                     b.Property<int>("SizeDoc")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasColumnName("size_doc");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SizeDoc"));
 
                     b.HasKey("Id");
 
@@ -108,7 +102,6 @@ namespace ServerSVH.DataAccess.Migrations
                         .HasColumnName("status");
 
                     b.Property<Guid>("UUID")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("uuid");
 

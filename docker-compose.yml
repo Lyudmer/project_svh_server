@@ -16,8 +16,8 @@ services:
       - ./rabbitmq/data/:/var/lib/rabbitmq/
       - ./rabbitmq/log/:/var/log/rabbitmq/
     ports:
-      - "5673:5673"
-      - "15673:15673"
+      - "5673:5672"
+      - "15673:15672"
   postgres:
     container_name: srvpostgres
     image: postgres:latest
@@ -27,7 +27,7 @@ services:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "studadmin"
     ports:
-       - "5433:5433"
+       - "5433:5432"
     volumes:
       - postgres-db:/var/lib/postgresql/data
     
@@ -39,7 +39,7 @@ services:
         MONGO_INITDB_ROOT_USERNAME: studadmin
         MONGO_INITDB_ROOT_PASSWORD: studadmin
     ports:
-       -  27018:27018
+       -  27018:27017
  
 volumes:
   postgres-db:

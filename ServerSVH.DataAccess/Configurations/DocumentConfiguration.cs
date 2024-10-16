@@ -26,6 +26,7 @@ namespace ServerSVH.DataAccess.Configurations
                    .IsRequired()
                    .HasColumnName("docid")
                    .HasColumnType("uuid");
+            
             builder.Property(d => d.Pid)
                    .IsRequired()
                    .HasColumnName("pid");
@@ -36,18 +37,18 @@ namespace ServerSVH.DataAccess.Configurations
 
             builder.Property(d => d.ModifyDate)
                     .HasColumnName("modify_date");
+            
             builder.Property(d => d.SizeDoc)
                     .IsRequired()
-                    .ValueGeneratedOnAdd()
                     .HasColumnName("size_doc");
+
             builder.Property(d => d.Idmd5)
                    .IsRequired()
-                   .ValueGeneratedOnAdd()
                    .HasColumnName("idmd5")
                    .HasMaxLength(32);
+            
             builder.Property(d => d.IdSha256)
                    .IsRequired()
-                   .ValueGeneratedOnAdd()
                    .HasColumnName("idsha256")
                    .HasMaxLength(64);
         }

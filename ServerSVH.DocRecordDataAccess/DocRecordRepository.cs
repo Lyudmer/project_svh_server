@@ -42,8 +42,7 @@ namespace ServerSVH.DocRecordDataAccess
         {
             var filter = Builders<DocRecord>.Filter.Eq(s => s.DocId, DocId);
             var update = Builders<DocRecord>.Update
-                            .Set(s => s.DocText, docRecord.DocText)
-                            .Set(s => s.ModifyDate, DateTime.Now);
+                            .Set(s => s.DocText, docRecord.DocText);
             try
             {
                 var resUpdate = await _docRecordCollection.DocRecords.UpdateOneAsync(filter, update);

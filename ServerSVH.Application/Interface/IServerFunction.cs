@@ -1,6 +1,7 @@
 ﻿using ServerSVH.Application.Common;
 using ServerSVH.Core.Models;
 using ServerSVH.DocRecordCore.Models;
+using System.Security.Cryptography;
 using System.Xml.Linq;
 
 namespace ServerSVH.Application.Interface
@@ -17,6 +18,7 @@ namespace ServerSVH.Application.Interface
         Task<Document> GetDocument(int Id);
         Task<List<Document>> GetDocumentList(int Pid);
         Task<List<Package>> GetPackageList();
+        Task<Package> GetPkgId(int Pid);
         Task<DocRecord> GetRecord(Guid DocId);
         Task<Guid> SaveDocToPkg(Guid gDocId, string docName, string docRecord, int Pid);
         Task<bool> UpdateStatusPkg(int Pid, int stPkg);

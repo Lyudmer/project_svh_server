@@ -14,9 +14,9 @@ namespace ServerSVH.DataAccess.Repositories
         public async Task<Package> Add(Package Pkg)
         {
             var PkgEntity = _mapper.Map<PackageEntity>(Pkg);
-            await _dbContext.AddAsync(PkgEntity);
+            var resPkg = await _dbContext.AddAsync(PkgEntity);
             await _dbContext.SaveChangesAsync();
-            return _mapper.Map<Package>(PkgEntity);
+            return _mapper.Map<Package>(resPkg.Entity);
         }
         public async Task<Package> GetByUUId(Guid uuid)
         {
