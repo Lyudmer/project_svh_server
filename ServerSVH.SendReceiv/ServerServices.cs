@@ -1,18 +1,9 @@
 ﻿using ServerSVH.Application.Interface;
-using ServerSVH.Core.Abstraction.Repositories;
-using ServerSVH.Core.Models;
-using ServerSVH.DocRecordCore.Abstraction;
-using ServerSVH.DocRecordCore.Models;
 using ServerSVH.SendReceiv.Consumer;
 using ServerSVH.SendReceiv.Producer;
 using System.Xml.Linq;
 using ServerSVH.Application.Common;
-using MongoDB.Driver;
-using System.Text;
-using System.Xml.Xsl;
-using System.Xml;
-using System.Xml.XPath;
-using Document = ServerSVH.Core.Models.Document;
+
 
 
 

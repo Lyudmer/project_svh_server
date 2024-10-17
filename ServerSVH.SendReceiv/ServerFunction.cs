@@ -4,7 +4,6 @@ using ServerSVH.Core.Abstraction.Repositories;
 using ServerSVH.Core.Models;
 using ServerSVH.DocRecordCore.Abstraction;
 using ServerSVH.DocRecordCore.Models;
-using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
