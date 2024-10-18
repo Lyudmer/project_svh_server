@@ -32,6 +32,17 @@ namespace ServerSVH.SendReceiv.Settings
 
             return factory.CreateConnection();
         }
-
+        public bool CloseModelRabbitMQ(IModel channel)
+        {
+            try
+            {
+                channel.Close();
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }

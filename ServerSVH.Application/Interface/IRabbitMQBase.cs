@@ -7,5 +7,6 @@ namespace ServerSVH.Application.Interface
     {
         IModel GetConfigureRabbitMQ();
         IConnection GetRabbitConnection(IConfiguration configuration);
+        bool CloseModelRabbitMQ(IModel channel);
     }
 }

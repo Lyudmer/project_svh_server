@@ -26,24 +26,25 @@ namespace ServerSVH.SendReceiv
             try
             {
                 // получить сообщение с пакетом
-                var resMessEmul = _rabbitMQConsumer.LoadMessage("EmulSendDoc");
-                var resMess = _rabbitMQConsumer.LoadMessage("SendPkg"); 
+            //    var resMessEmul = _rabbitMQConsumer.LoadMessage("EmulSendDoc");
+                var resMess = _rabbitMQConsumer.LoadMessage("sendpkg"); 
                 ResLoadPackage resPkg = new();
                 XDocument xPkg = new();
                 // создать пакет и запустить workflow
-                if (resMess != null || resMessEmul != null)
+                if (resMess != null && resMess.Length>0
+                    //|| resMessEmul != null
+                    )
                 {
-                   
-                    if (resMess != null)
-                    {
+                   //   xPkg = XDocument.Parse(resMess);
+                    
                         resPkg = await _srvFunction.PaskageFromMessage(resMess);
-                        xPkg = XDocument.Load(resMess);
-                    }
-                    if (resMessEmul != null)
-                    {
-                        resPkg = await _srvFunction.PaskageFromMessageEmul(resMessEmul);
-                        xPkg = XDocument.Load(resMessEmul);
-                    }
+                     
+                    
+                    //if (resMessEmul != null)
+                    //{
+                    //    resPkg = await _srvFunction.PaskageFromMessageEmul(resMessEmul);
+                    //    xPkg = XDocument.Load(resMessEmul);
+                    //}
                     switch (resPkg.Status)
                     {
                         case -1:
@@ -147,12 +148,12 @@ namespace ServerSVH.SendReceiv
                             break;
                     }
                 }
-                var resMessDel = _rabbitMQConsumer.LoadMessage("DelPkg");
-                if (resMessDel != null)
-                {
-                    resPkg = await _srvFunction.PaskageFromMessageDel(resMessDel);
-                    _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "DeletedPkg");
-                }
+                //var resMessDel = _rabbitMQConsumer.LoadMessage("DelPkg");
+                //if (resMessDel != null)
+                //{
+                //    resPkg = await _srvFunction.PaskageFromMessageDel(resMessDel);
+                //    _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "DeletedPkg");
+                //}
             }
             catch (Exception)
             {

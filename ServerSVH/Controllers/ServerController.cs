@@ -1,16 +1,28 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using ServerSVH.Application.Interface;
 using ServerSVH.Contracts;
+using System.Text;
 
 
 namespace ServerSVH.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ServerController( IServerFunction serverFunction) : ControllerBase
+    public class ServerController( IServerFunction serverFunction, IServerServices serverServices) : ControllerBase
     {
         private readonly IServerFunction _serverFunction = serverFunction;
-    
+        private readonly IServerServices _serverServices = serverServices;
+        [HttpPost("LoadMessage")]
+        public async Task<IActionResult> LoadMess()
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var result = await _serverServices.LoadMessage();
+
+            return Ok(result);
+        }
+
         [HttpPost("GetPackage")]
         public async Task<IActionResult> GetPkgAll(PackageResponse pkgSend)
         {
@@ -41,5 +53,6 @@ namespace ServerSVH.Controllers
 
             return Ok(result);
         }
+     
     }
 }

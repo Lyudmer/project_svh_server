@@ -12,8 +12,10 @@ namespace ServerSVH.Endpoints
         public static IEndpointRouteBuilder MapPackagesEndpoints(this IEndpointRouteBuilder app)
         {
             var endpoints = app.MapGroup("Packages");
+            app.MapGet("LoadPackage", LoadMessage);
             app.MapGet("GetPackage", GetPkgAll);
             app.MapGet("GetPackage{Pid:int}", GetPkgId);
+
             return app;
         }
         private static async Task<IResult> GetPkgAll(ServerFunction srvService)
@@ -24,6 +26,11 @@ namespace ServerSVH.Endpoints
         private static async Task<IResult> GetPkgId(int Pid, ServerFunction srvService)
         {
             await ((IServerFunction)srvService).GetPkgId(Pid);
+            return Results.Ok();
+        }
+        private static async Task<IResult> LoadMessage(ServerServices srvService)
+        {
+            await ((IServerServices)srvService).LoadMessage();
             return Results.Ok();
         }
     }

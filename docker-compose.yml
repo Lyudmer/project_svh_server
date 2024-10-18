@@ -5,21 +5,22 @@ services:
       context: .
       dockerfile: ServerSVH/Dockerfile
   rabbit:
-    container_name: serversvh-rabbitmq
+    container_name: rabbitmq
     image: rabbitmq:4.0.2-management-alpine
     restart: always
     hostname: localhost    
     environment:
-      RABBITMQ_DEFAULT_USER: serversvh
-      RABBITMQ_DEFAULT_PASS: serversvh
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     volumes:
       - ./rabbitmq/data/:/var/lib/rabbitmq/
       - ./rabbitmq/log/:/var/log/rabbitmq/
     ports:
-      - "5673:5672"
-      - "15673:15672"
+      - "15672:15672"
+      - "5672:5672"
+    
   postgres:
-    container_name: srvpostgres
+    container_name: postgres
     image: postgres:latest
     restart: always
     environment:
@@ -27,27 +28,35 @@ services:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "studadmin"
     ports:
-       - "5433:5432"
+       - "5432:5432"
     volumes:
       - postgres-db:/var/lib/postgresql/data
     
   mongo:
     image: mongo:latest
-    container_name: servermongo
+    container_name: mongo
     restart: always
     environment:
         MONGO_INITDB_ROOT_USERNAME: studadmin
         MONGO_INITDB_ROOT_PASSWORD: studadmin
     ports:
-       -  27018:27017
- 
+       -  27017:27017
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: studadmin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: studadmin
+    depends_on:
+      - mongo
 volumes:
   postgres-db:
     driver: local
   mongodb-data:
-    driver: local
   rabbitmq_data:  
   networks:
   default:
-    name: serversvhLocalNetwork 
+    name: svhLocalNetwork 
     external: true  
