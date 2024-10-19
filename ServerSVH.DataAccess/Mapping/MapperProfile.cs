@@ -13,6 +13,9 @@ namespace ServerSVH.DataAccess.Mapping
             CreateMap<PackageEntity, Package>().ReverseMap();
             CreateMap<Package, PackageEntity>().ReverseMap();
             CreateMap<StatusGraphEntity, StatusGraph>().ReverseMap();
+            CreateMap<StatusGraph, StatusGraphEntity>().ReverseMap();
+
+          
         }
     }
 }

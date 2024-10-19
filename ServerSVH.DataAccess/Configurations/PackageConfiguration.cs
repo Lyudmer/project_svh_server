@@ -19,7 +19,8 @@ namespace ServerSVH.DataAccess.Configurations
             builder
                 .HasMany(p => p.Documents)
                 .WithOne(d => d.Package)
-                .HasForeignKey(d => d.Pid);
+                .HasForeignKey(d => d.Pid)
+                .OnDelete(DeleteBehavior.Cascade); 
             //свойства полей
             builder.Property(p => p.Id)
                    .IsRequired()
@@ -32,18 +33,17 @@ namespace ServerSVH.DataAccess.Configurations
                         .HasColumnType("uuid");
 
             builder.Property(p => p.CreateDate)
-                        .HasColumnName("create_date")
-                        .HasDefaultValueSql("now()");
+                        .HasColumnName("create_date");
 
             builder.Property(p => p.ModifyDate)
                     .HasColumnName("modify_date");
 
             builder.Property(p => p.StatusId)
-                   .HasDefaultValue("0")
                    .HasColumnName("status");
 
             builder.Property(p => p.UserId)
                    .HasColumnName("user_id")
+                   .HasColumnType("uuid")
                    .IsRequired();
 
 

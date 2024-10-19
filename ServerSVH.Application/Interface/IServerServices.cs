@@ -1,12 +1,9 @@
-﻿using ServerSVH.Application.Common;
-using System.Xml.Linq;
-
+﻿
 namespace ServerSVH.Application.Interface
 {
     public interface IServerServices
     {
-     
         Task<int> LoadMessage();
-      
+        Task<int> LoadMessageFile(string resMess, string typeMess);
     }
 }

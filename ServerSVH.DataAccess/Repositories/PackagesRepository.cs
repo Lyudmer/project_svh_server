@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ServerSVH.Core.Abstraction.Repositories;
 using ServerSVH.Core.Models;
 using ServerSVH.DataAccess.Entities;
+using System.Linq;
 
 namespace ServerSVH.DataAccess.Repositories
 {
@@ -22,17 +23,18 @@ namespace ServerSVH.DataAccess.Repositories
         {
             var pkgEntity = await _dbContext.Packages
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.UUID == uuid) ?? throw new Exception();
+                .FirstOrDefaultAsync(p => p.UUID == uuid);
             return _mapper.Map<Package>(pkgEntity);
 
         }
-        public async Task<Package> GetById(int Pid)
+        public async Task<Package?> GetById(int Pid)
         {
             var pkgEntity = await _dbContext.Packages
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == Pid) ?? throw new Exception();
-
-            return _mapper.Map<Package>(pkgEntity);
+                .FirstOrDefaultAsync(p => p.Id == Pid);
+            if (pkgEntity != null)
+                return _mapper.Map<Package>(pkgEntity);
+            else return null;
 
         }
         public async Task<List<Package>> GetAll()
@@ -52,15 +54,13 @@ namespace ServerSVH.DataAccess.Repositories
             var pkgList = await query.ToListAsync();
             return _mapper.Map<List<Package>>(pkgList);
         }
-        public async Task<Package> GetPkgByGuid(Guid UserId, Guid UUID)
+        public async Task<int> GetPkgByGuid(Guid UserId, Guid UUID)
         {
             var pkgEntity = await _dbContext.Packages
                 .AsNoTracking()
-                .Include(p => p.Documents)
-                .FirstOrDefaultAsync(p => p.UUID == UUID && p.UserId == UserId)
-                ?? throw new Exception();
-
-            return _mapper.Map<Package>(pkgEntity);
+                .FirstOrDefaultAsync(p => p.UUID == UUID && p.UserId == UserId);
+            if(pkgEntity==null)   return 0;
+            else return pkgEntity.Id;
 
         }
         public async Task<Package> GetPkgWithDoc(int Pid)
@@ -90,7 +90,7 @@ namespace ServerSVH.DataAccess.Repositories
            var resId= await _dbContext.Packages
                             .Where(p => p.Id == Pid)
                             .ExecuteUpdateAsync(s => s.SetProperty(p => p.StatusId, statusId)
-                                                      .SetProperty(p => p.ModifyDate, DateTime.Now));
+                                                      .SetProperty(p => p.ModifyDate, DateTime.UtcNow));
             if (resId == 0) return 0;
             else return Pid;
         }
@@ -102,8 +102,17 @@ namespace ServerSVH.DataAccess.Repositories
         }
         public async Task<int> GetLastPkgId()
         {
-            var cPkg = await _dbContext.Packages.CountAsync();
-
+            int cPkg = 0;
+            try
+            {
+                var resId = await _dbContext.Packages.CountAsync();
+                if (resId > 0) cPkg = resId;
+               
+            }
+            catch (Exception)
+            {
+                return cPkg;
+            }
             return cPkg;
         }
 

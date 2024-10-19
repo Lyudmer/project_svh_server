@@ -31,6 +31,7 @@ services.AddSwaggerGen();
 services.AddDbContext<ServerSVHDbContext>(options => 
 { 
     options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")); 
+
 });
 
 services.AddControllers()

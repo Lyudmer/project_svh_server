@@ -32,10 +32,8 @@ namespace ServerSVH.DataAccess.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreateDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("create_date")
-                        .HasDefaultValueSql("now()");
+                        .HasColumnType("date")
+                        .HasColumnName("create_date");
 
                     b.Property<Guid>("DocId")
                         .HasColumnType("uuid")
@@ -43,7 +41,8 @@ namespace ServerSVH.DataAccess.Migrations
 
                     b.Property<string>("DocType")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("doc_type");
 
                     b.Property<string>("IdSha256")
                         .IsRequired()
@@ -58,7 +57,7 @@ namespace ServerSVH.DataAccess.Migrations
                         .HasColumnName("idmd5");
 
                     b.Property<DateTime>("ModifyDate")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("date")
                         .HasColumnName("modify_date");
 
                     b.Property<long>("Pid")
@@ -86,10 +85,8 @@ namespace ServerSVH.DataAccess.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreateDate")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("create_date")
-                        .HasDefaultValueSql("now()");
+                        .HasColumnName("create_date");
 
                     b.Property<DateTime>("ModifyDate")
                         .HasColumnType("timestamp with time zone")

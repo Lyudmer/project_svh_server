@@ -18,44 +18,63 @@ namespace ServerSVH.SendReceiv
         private readonly IServerFunction _srvFunction = srvFunction;
         private readonly IMessagePublisher _messagePublisher = messagePublisher;
         private readonly IRunWorkflow _runWorkflow = runWorkflow;
-        async Task<int> IServerServices.LoadMessage()
+
+        public async Task<int> LoadMessage()
+        {
+
+            // получить сообщение с пакетом
+            //    var resMessEmul = _rabbitMQConsumer.LoadMessage("EmulSendDoc");
+
+            var resMess = _rabbitMQConsumer.LoadMessage("sendpkg");
+            if (resMess != null)
+            {
+                return await LoadMessageFile(resMess, "sendpkg");
+            }
+            return 0;
+        }
+        public async Task<int> LoadMessageFile(string resMess, string typeMess)
         {
             int stPkg = 0;
-            int CountDoc = 0;  
-            List<XDocument> resXml;
-            try
+            if (resMess != null && resMess.Length > 0)
             {
-                // получить сообщение с пакетом
-            //    var resMessEmul = _rabbitMQConsumer.LoadMessage("EmulSendDoc");
-                var resMess = _rabbitMQConsumer.LoadMessage("sendpkg"); 
+
+                int CountDoc = 0;
+                List<XDocument> resXml;
                 ResLoadPackage resPkg = new();
                 XDocument xPkg = new();
-                // создать пакет и запустить workflow
-                if (resMess != null && resMess.Length>0
-                    //|| resMessEmul != null
-                    )
+                try
                 {
-                   //   xPkg = XDocument.Parse(resMess);
-                    
-                        resPkg = await _srvFunction.PaskageFromMessage(resMess);
-                     
-                    
-                    //if (resMessEmul != null)
-                    //{
-                    //    resPkg = await _srvFunction.PaskageFromMessageEmul(resMessEmul);
-                    //    xPkg = XDocument.Load(resMessEmul);
-                    //}
+                    switch (typeMess)
+                    {
+                        case "sendpkg":
+                            {
+                                // создать пакет и запустить workflow
+                                resPkg = await _srvFunction.PaskageFromMessage(resMess);
+                            }
+                            break;
+                        case "loaddelpkg":
+                            resPkg = await _srvFunction.PaskageFromMessageDel(resMess);
+                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "deletedpkg");
+                            break;
+                        case "loademulmess":
+                            resPkg = await _srvFunction.PaskageFromMessageEmul(resMess);
+                            xPkg = XDocument.Parse(resMess);
+                            break;
+                        default:
+                            break;
+                    }
+
                     switch (resPkg.Status)
                     {
                         case -1:
                         case 4:
                             //отправить ошибку клиенту
-                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "StatusPkg");
+                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "statuspkg");
                             break;
                         case 1:
                             await _srvFunction.UpdateStatusPkg(resPkg.Pid, resPkg.Status);
                             //отправить собщение клиенту
-                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "StatusPkg");
+                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "statuspkg");
                             //запуск workflow
                             _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
 
@@ -63,7 +82,7 @@ namespace ServerSVH.SendReceiv
                             if (stPkg == 4) goto case 4;
                             break;
                         case 3:
-                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "StatusPkg");
+                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "statuspkg");
                             _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
 
                             if (stPkg == 5) goto case 5;
@@ -71,7 +90,7 @@ namespace ServerSVH.SendReceiv
 
                             break;
                         case 5:
-                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "StatusPkg");
+                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "statuspkg");
                             try
                             {
                                 resXml = await _srvFunction.CreatePkgForEmul(resPkg, "archive-doc.cfg.xml");
@@ -80,14 +99,14 @@ namespace ServerSVH.SendReceiv
                                     CountDoc = resXml.Count;
                                     foreach (XDocument xDoc in resXml)
                                     {
-                                        _messagePublisher.SendMessage(xDoc.ToString(), "SendEmulArch");
+                                        _messagePublisher.SendMessage(xDoc.ToString(), "sendemularch");
                                         CountDoc--;
                                     }
                                     if (CountDoc == 0)
                                     {
                                         resPkg.Status = 208;
                                         await _srvFunction.UpdateStatusPkg(resPkg.Pid, resPkg.Status);
-                                        _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "StatusPkg");
+                                        _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "statuspkg");
                                         goto case 208;
                                     }
                                     else
@@ -114,7 +133,7 @@ namespace ServerSVH.SendReceiv
                             };
                             break;
                         case 217:
-                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "StatusPkg");
+                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "statuspkg");
                             _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
                             if (resPkg.Status == 210) goto case 210;
 
@@ -126,10 +145,10 @@ namespace ServerSVH.SendReceiv
                                 CountDoc = resXml.Count;
                                 foreach (XDocument xDoc in resXml)
                                 {
-                                    _messagePublisher.SendMessage(xDoc.ToString(), "SendEmulArmti");
+                                    _messagePublisher.SendMessage(xDoc.ToString(), "sendemularmti");
                                 }
                                 await _srvFunction.UpdateStatusPkg(resPkg.Pid, resPkg.Status);
-                                _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "StatusPkg");
+                                _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "statuspkg");
                             }
                             else
                             {
@@ -139,31 +158,25 @@ namespace ServerSVH.SendReceiv
                             }
                             break;
                         case 214:
-                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "StatusPkg");
+                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "statuspkg");
                             _runWorkflow.RunBuilderXml(xPkg, ref resPkg);
-                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg, "ConfirmWHDocReg.cfg.xml").ToString(), "DocResultPkg");
+                            _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg, "ConfirmWHDocReg.cfg.xml").ToString(), "docresult");
                             break;
                         default:
                             // ждем смены статуса
                             break;
                     }
                 }
-                //var resMessDel = _rabbitMQConsumer.LoadMessage("DelPkg");
-                //if (resMessDel != null)
-                //{
-                //    resPkg = await _srvFunction.PaskageFromMessageDel(resMessDel);
-                //    _messagePublisher.SendMessage(_srvFunction.CreateResultXml(resPkg).ToString(), "DeletedPkg");
-                //}
-            }
-            catch (Exception)
-            {
-                //string mess = ex.Message;
+                catch (Exception)
+                {
+                    //string mess = ex.Message;
+
+                }
 
             }
             return stPkg;
         }
-       
     }
-   }
+}
 
 

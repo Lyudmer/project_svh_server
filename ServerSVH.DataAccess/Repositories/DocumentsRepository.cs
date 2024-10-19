@@ -14,9 +14,10 @@ namespace ServerSVH.DataAccess.Repositories
 
         private readonly IMapper _mapper = mapper;
 
-        public async Task<Document> Add(Document Doc)
+        public async Task<Document> Add(Document inDoc)
         {
-            var docEntity = _mapper.Map<DocumentEntity>(Doc);
+            var docEntity = _mapper.Map<DocumentEntity>(inDoc);
+            
             var resEntity = await _dbContext.AddAsync(docEntity);
             await _dbContext.SaveChangesAsync();
             return _mapper.Map<Document>(resEntity.Entity);
@@ -26,18 +27,29 @@ namespace ServerSVH.DataAccess.Repositories
         {
             var docEntity = await _dbContext.Document
                 .AsNoTracking()
-                .FirstOrDefaultAsync(d => d.Id == id) ?? throw new Exception();
+                .FirstOrDefaultAsync(d => d.Id == id);
 
             return _mapper.Map<Document>(docEntity);
 
         }
-        public async Task<Document> GetByDocType(int pid,string docType)
+        public async Task<int> GetByDocType(int pid,string docType)
         {
             var docEntity = await _dbContext.Document
                 .AsNoTracking()
-                .FirstOrDefaultAsync(d => d.Pid == pid && d.DocType == docType) ?? throw new Exception();
+                .FirstOrDefaultAsync(d => d.Pid == pid && d.DocType == docType);
 
-            return _mapper.Map<Document>(docEntity);
+            if (docEntity == null) return 0;
+            else return docEntity.Id;
+
+        }
+        public async Task<Guid> GetByGuidDocType(int pid, string docType)
+        {
+            var docEntity = await _dbContext.Document
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Pid == pid && d.DocType == docType);
+
+            if (docEntity == null) return Guid.Empty;
+            else return docEntity.DocId;
 
         }
         public async Task<List<Document>> GetListByDocType(int pid, string docType)
@@ -50,13 +62,13 @@ namespace ServerSVH.DataAccess.Repositories
             var docs = await query.ToListAsync();
             return _mapper.Map<List<Document>>(docs);
         }
-        public async Task<Document> GetByGuidId(Guid did)
+        public async Task<int> GetByGuidId(Guid did)
         {
             var docEntity = await _dbContext.Document
                 .AsNoTracking()
-                .FirstOrDefaultAsync(d => d.DocId == did) ?? throw new Exception();
-
-            return _mapper.Map<Document>(docEntity);
+                .FirstOrDefaultAsync(d => d.DocId == did);
+            if (docEntity == null) return 0;
+            else  return docEntity.Id;
 
         }
         public async Task<List<Document>> GetByFilter(int pid)
@@ -84,7 +96,7 @@ namespace ServerSVH.DataAccess.Repositories
         {
             await _dbContext.Document
                 .Where(p => p.DocId == DocId)
-                .ExecuteUpdateAsync(s => s.SetProperty(p => p.ModifyDate, DateTime.Now)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.ModifyDate, DateTime.UtcNow)
                                           .SetProperty(p => p.SizeDoc, Doc.SizeDoc)
                                           .SetProperty(p => p.DocType, Doc.DocType)
                                           .SetProperty(p => p.Idmd5, Doc.Idmd5)
@@ -105,7 +117,20 @@ namespace ServerSVH.DataAccess.Repositories
         }
         public async Task<int> GetLastDocId()
         {
-            return await _dbContext.Document.MaxAsync(p => p.Id);
+            int cDoc = 0;
+            try
+            {
+                var resId= await _dbContext.Document.CountAsync();
+
+                if (resId != 0) cDoc = resId;
+                else cDoc = 0;
+
+            }
+            catch (Exception )
+            {
+                return cDoc;
+            }
+            return cDoc;
         }
     }
 }

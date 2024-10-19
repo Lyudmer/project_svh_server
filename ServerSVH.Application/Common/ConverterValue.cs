@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ServerSVH.Application.Common
 {
     public class ConverterValue
     {
+       
         public static T? ConvertTo<T>(string? valStr)
         {
             if (typeof(T) == typeof(int))
@@ -27,7 +30,8 @@ namespace ServerSVH.Application.Common
             }
             else if (typeof(T) == typeof(DateTime))
             {
-                if (DateTime.TryParse(valStr, out DateTime result))
+                
+                if (DateTime.TryParse(valStr,  out DateTime result))
                 {
                     return (T)Convert.ChangeType(result, typeof(T));
                 }

@@ -20,7 +20,8 @@ namespace ServerSVH.Application.Interface
         Task<List<Package>> GetPackageList();
         Task<Package> GetPkgId(int Pid);
         Task<DocRecord> GetRecord(Guid DocId);
-        Task<Guid> SaveDocToPkg(Guid gDocId, string docName, string docRecord, int Pid);
+        Task<Guid> SaveDocToPkg(XElement xDoc, int Pid);
+        Task<Guid> SaveDocToPkg(Guid DocId, string DocName, string Doctext, int Pid);
         Task<bool> UpdateStatusPkg(int Pid, int stPkg);
         Task<List<XDocument>> CreatePkgForEmul(ResLoadPackage resPkg, string docType);
         Task<XDocument> CreatePaskageAddAcrhXml(int Pid);

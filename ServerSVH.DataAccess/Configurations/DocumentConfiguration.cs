@@ -21,7 +21,7 @@ namespace ServerSVH.DataAccess.Configurations
                    .ValueGeneratedOnAdd()
                    .HasColumnName("did")
                    .HasColumnType("bigint");
-
+            
             builder.Property(d => d.DocId)
                    .IsRequired()
                    .HasColumnName("docid")
@@ -33,11 +33,10 @@ namespace ServerSVH.DataAccess.Configurations
 
             builder.Property(d => d.CreateDate)
                     .HasColumnName("create_date")
-                    .HasDefaultValueSql("now()");
-
+                    .HasColumnType("date");
             builder.Property(d => d.ModifyDate)
-                    .HasColumnName("modify_date");
-            
+                    .HasColumnName("modify_date")
+                    .HasColumnType("date");
             builder.Property(d => d.SizeDoc)
                     .IsRequired()
                     .HasColumnName("size_doc");
@@ -51,6 +50,10 @@ namespace ServerSVH.DataAccess.Configurations
                    .IsRequired()
                    .HasColumnName("idsha256")
                    .HasMaxLength(64);
+
+            builder.Property(d => d.DocType)
+                    .IsRequired()
+                    .HasColumnName("doc_type");
         }
     }
 }

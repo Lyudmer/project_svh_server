@@ -12,12 +12,12 @@
             ModifyDate = modifyDate;
         }
         public int Id { get; set; }
-        public Guid UserId { get; set; }
+        public Guid UserId { get; set; }= Guid.Empty;
         public int StatusId { get; set; }
 
-        public Guid UUID { get; set; }
-        public DateTime CreateDate { get; set; } = DateTime.Now;
-        public DateTime ModifyDate { get; set; } = DateTime.Now;
+        public Guid UUID { get; set; }=Guid.Empty;
+        public DateTime CreateDate { get; set; } = DateTime.UtcNow;
+        public DateTime ModifyDate { get; set; } = DateTime.UtcNow;
         public static Package Create(int pid, Guid userId, int statusId, Guid uuId,
                                      DateTime createDate, DateTime modifyDate)
         {

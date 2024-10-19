@@ -1,5 +1,7 @@
 ﻿
+using ClientSVH.Contracts;
 using ServerSVH.Application.Interface;
+using ServerSVH.Core.Abstraction.Services;
 using ServerSVH.SendReceiv;
 
 
@@ -13,6 +15,7 @@ namespace ServerSVH.Endpoints
         {
             var endpoints = app.MapGroup("Packages");
             app.MapGet("LoadPackage", LoadMessage);
+            app.MapGet("LoadPackageFile", LoadMessageFile);
             app.MapGet("GetPackage", GetPkgAll);
             app.MapGet("GetPackage{Pid:int}", GetPkgId);
 
@@ -31,6 +34,11 @@ namespace ServerSVH.Endpoints
         private static async Task<IResult> LoadMessage(ServerServices srvService)
         {
             await ((IServerServices)srvService).LoadMessage();
+            return Results.Ok();
+        }
+        private static async Task<IResult> LoadMessageFile(LoadFileRequest request, ServerServices srvService)
+        {
+            await ((IServerServices)srvService).LoadMessageFile(request.FileName,request.TypeMess);
             return Results.Ok();
         }
     }

@@ -4,16 +4,22 @@ using System.Text;
 
 namespace ServerSVH.Application.Common
 {
-    public record class DocFromXml
-    (
-        string TypeDoc,
-        Guid DocId,
-        DateTime DocCreate,
-        string DocText
-    );
+    public class DocFromXml
+    {
+        public string TypeDoc { get; set; } = string.Empty;
+        public Guid DocId { get; set; } = Guid.Empty;
+        public DateTime CreateDate { get; set; } = DateTime.Now.Date;
+        public string DocText { get; set; } = string.Empty;
+        public int Did { get; set; } = -1;
+        public string HashMd5 { get; set; } = string.Empty;
+        public string Sha256 { get; set; } = string.Empty;
+        
+    };
     public class ResLoadPackage
     {
+        public Guid UserId { get; set; } = Guid.Empty;
         public Guid UUID { get; set; }= Guid.Empty;
+        public DateTime CreateDate { get; set; } = DateTime.UtcNow;
         public int Pid { get; set; } = -1;    
         public int Status { get; set; }= -1;
         public string Message { get; set; }=string.Empty;

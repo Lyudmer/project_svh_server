@@ -15,7 +15,7 @@ namespace ServerSVH.SendReceiv.Consumer
         public string LoadMessage(string CodeCMN)
         {
             using IModel channel = _rabbitMQBase.GetConfigureRabbitMQ();
-            string resMess = Register(channel, $"exchange.direct", $"queue.direct", CodeCMN);
+            string resMess = Register(channel, "exchange.direct", "queue.direct", CodeCMN);
             _rabbitMQBase.CloseModelRabbitMQ(channel);
             return resMess;
         }
